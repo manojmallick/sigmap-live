@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import type { AskResult, ContextMap, DevinSessionResult } from "@/lib/types";
+import { useEffect, useState } from "react";
+import type {
+  AskResult,
+  ContextMap,
+  DevinMessage,
+  DevinSessionResult,
+  DevinSessionStatus,
+} from "@/lib/types";
 import { ContextMapView } from "@/components/ContextMapView";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
@@ -18,6 +24,10 @@ export function DemoClient() {
   const [devin, setDevin] = useState<DevinSessionResult | null>(null);
   const [sending, setSending] = useState(false);
   const [devinError, setDevinError] = useState<string | null>(null);
+  const [devinStatus, setDevinStatus] = useState<DevinSessionStatus | null>(
+    null
+  );
+  const [devinPolling, setDevinPolling] = useState(false);
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AskResult | null>(null);
@@ -32,6 +42,7 @@ export function DemoClient() {
     setMap(null);
     setDevin(null);
     setDevinError(null);
+    setDevinStatus(null);
     setAnswer(null);
     setAskError(null);
     setQuestion("");
@@ -56,6 +67,7 @@ export function DemoClient() {
     setSending(true);
     setDevinError(null);
     setDevin(null);
+    setDevinStatus(null);
     try {
       const res = await fetch("/api/devin", {
         method: "POST",
@@ -94,6 +106,46 @@ export function DemoClient() {
       setAsking(false);
     }
   }
+
+  // Poll Devin for status + messages once a session exists.
+  const sessionId = devin?.sessionId;
+  useEffect(() => {
+    if (!sessionId) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    let polls = 0;
+    const MAX_POLLS = 60; // ~3 min at 3s
+
+    setDevinPolling(true);
+    const poll = async () => {
+      if (!active) return;
+      polls += 1;
+      try {
+        const res = await fetch(`/api/devin?sessionId=${sessionId}`);
+        const data = (await res.json()) as DevinSessionStatus;
+        if (!active) return;
+        if (res.ok) setDevinStatus(data);
+        if (res.ok && data.done) {
+          setDevinPolling(false);
+          return;
+        }
+      } catch {
+        // transient — keep polling
+      }
+      if (active && polls < MAX_POLLS) {
+        timer = setTimeout(poll, 3000);
+      } else {
+        setDevinPolling(false);
+      }
+    };
+    poll();
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   return (
     <div className="space-y-8">
@@ -242,8 +294,61 @@ export function DemoClient() {
                 {devinError}
               </div>
             )}
+
+            {devin && (
+              <DevinResponse status={devinStatus} polling={devinPolling} />
+            )}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function DevinResponse({
+  status,
+  polling,
+}: {
+  status: DevinSessionStatus | null;
+  polling: boolean;
+}) {
+  const messages: DevinMessage[] = status?.messages ?? [];
+  const working = polling && messages.length === 0;
+
+  return (
+    <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-center gap-2 text-xs text-zinc-500">
+        <span
+          className={`inline-block h-2 w-2 rounded-full ${
+            polling ? "animate-pulse bg-amber-500" : "bg-emerald-500"
+          }`}
+        />
+        <span>
+          Devin · {status?.statusEnum ?? status?.status ?? "starting"}
+          {polling ? " (working…)" : ""}
+        </span>
+      </div>
+
+      {working && (
+        <p className="text-sm text-zinc-500">
+          Devin is spinning up and reading the verified context. Responses
+          appear here as they arrive — this can take a minute.
+        </p>
+      )}
+
+      {messages.map((m, i) => (
+        <div
+          key={i}
+          className="whitespace-pre-wrap rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm leading-relaxed dark:border-zinc-800 dark:bg-zinc-950"
+        >
+          {m.message}
+        </div>
+      ))}
+
+      {!polling && messages.length === 0 && (
+        <p className="text-sm text-zinc-500">
+          No response yet — open the session to follow along.
+        </p>
       )}
     </div>
   );

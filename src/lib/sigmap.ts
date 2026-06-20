@@ -8,6 +8,7 @@ import {
   type RepoBlob,
 } from "@/lib/github";
 import { cacheKey, withCache } from "@/lib/cache";
+import { resolveRepoConfig, selectByConfig } from "@/lib/repo-config";
 import type { ContextFile, ContextMap } from "@/lib/types";
 
 /**
@@ -58,7 +59,8 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-function selectBlobs(blobs: RepoBlob[]): RepoBlob[] {
+/** Keep only supported, reasonably-sized source files, capped for safety. */
+function selectSupported(blobs: RepoBlob[]): RepoBlob[] {
   return blobs
     .filter(
       (b) =>
@@ -66,7 +68,7 @@ function selectBlobs(blobs: RepoBlob[]): RepoBlob[] {
         b.size <= MAX_FILE_BYTES &&
         !IGNORE_DIRS.test(`/${b.path}`)
     )
-    .sort((a, b) => b.size - a.size) // prefer substantive files
+    .sort((a, b) => b.size - a.size)
     .slice(0, MAX_FILES);
 }
 
@@ -84,7 +86,12 @@ export async function analyzeRepo(
 
   return withCache(key, async () => {
     const branch = pinnedBranch ?? (await getDefaultBranch(owner, name));
-    const blobs = selectBlobs(await listBlobs(owner, name, branch));
+    const allBlobs = await listBlobs(owner, name, branch);
+
+    // Detect the repo's real source folders (Gemini-tailored, defaults fallback),
+    // then scan only files in those folders — not "the largest files anywhere".
+    const config = await resolveRepoConfig(allBlobs, { owner, name });
+    const blobs = selectSupported(selectByConfig(allBlobs, config));
 
     if (blobs.length === 0) {
       throw new GitHubError(
@@ -150,6 +157,11 @@ export async function analyzeRepo(
         url: `https://github.com/${owner}/${name}`,
       },
       query: intent,
+      config: {
+        srcDirs: config.srcDirs,
+        source: config.source,
+        reasoning: config.reasoning,
+      },
       files,
       stats: {
         rawTokens,

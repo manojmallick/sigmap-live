@@ -112,3 +112,88 @@ export async function askCodebase(
 
   return { answer, model, citedFiles };
 }
+
+export interface SuggestedConfig {
+  srcDirs: string[];
+  exclude: string[];
+  reasoning: string;
+}
+
+const CONFIG_SYSTEM = [
+  "You configure SigMap for a repository. Given a directory tree summary,",
+  "identify the directories that contain the project's PRIMARY source code",
+  "(the code a developer would actually work on), and the directories to",
+  "exclude (tests, fixtures, examples, generated code, build output, docs,",
+  "benchmarks, scripts). Prefer precise paths (e.g. 'packages/core/src')",
+  "over broad ones. Return only directories that exist in the tree.",
+].join(" ");
+
+/**
+ * Ask Gemini to tailor SigMap's srcDirs/exclude to this repo's actual layout.
+ * Returns null (caller falls back to defaults) if no key is set or on error —
+ * config generation must never break the core analyze flow.
+ */
+export async function suggestRepoConfig(
+  treeSummary: string,
+  repo: { owner: string; name: string }
+): Promise<SuggestedConfig | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+
+  try {
+    const res = await fetch(
+      `${GLA_BASE}/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: CONFIG_SYSTEM }] },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `Repository: ${repo.owner}/${repo.name}\n\nDirectory tree (dir → file count, sample extensions):\n${treeSummary}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object",
+              properties: {
+                srcDirs: { type: "array", items: { type: "string" } },
+                exclude: { type: "array", items: { type: "string" } },
+                reasoning: { type: "string" },
+              },
+              required: ["srcDirs", "exclude", "reasoning"],
+            },
+          },
+        }),
+      }
+    );
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as GeminiResponse;
+    const text = data.candidates?.[0]?.content?.parts
+      ?.map((p) => p.text ?? "")
+      .join("");
+    if (!text) return null;
+
+    const parsed = JSON.parse(text) as Partial<SuggestedConfig>;
+    if (!Array.isArray(parsed.srcDirs)) return null;
+
+    return {
+      srcDirs: parsed.srcDirs.filter((s) => typeof s === "string"),
+      exclude: Array.isArray(parsed.exclude)
+        ? parsed.exclude.filter((s) => typeof s === "string")
+        : [],
+      reasoning: typeof parsed.reasoning === "string" ? parsed.reasoning : "",
+    };
+  } catch {
+    return null;
+  }
+}

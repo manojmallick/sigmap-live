@@ -23,6 +23,14 @@ export interface TokenStats {
   filesReturned: number;
 }
 
+/** How the source folders were detected for this repo. */
+export interface DetectedConfig {
+  srcDirs: string[];
+  /** "gemini" = LLM-tailored to this repo; "default" = SigMap defaults. */
+  source: "gemini" | "default";
+  reasoning?: string;
+}
+
 /** The verified context map returned by /api/analyze. */
 export interface ContextMap {
   repo: {
@@ -32,6 +40,7 @@ export interface ContextMap {
     url: string;
   };
   query: string;
+  config: DetectedConfig;
   files: ContextFile[];
   stats: TokenStats;
   /** True if any secret was detected and redacted. */
@@ -54,6 +63,21 @@ export interface DevinSessionRequest {
 export interface DevinSessionResult {
   sessionId: string;
   url: string;
+}
+
+export interface DevinMessage {
+  type: string;
+  message: string;
+}
+
+export interface DevinSessionStatus {
+  sessionId: string;
+  status: string;
+  statusEnum: string | null;
+  messages: DevinMessage[];
+  url: string;
+  /** True once Devin has reached a terminal/waiting state — stop polling. */
+  done: boolean;
 }
 
 export interface AskRequest {

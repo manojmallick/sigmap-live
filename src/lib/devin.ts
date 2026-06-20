@@ -1,4 +1,9 @@
-import type { ContextMap, DevinSessionResult } from "@/lib/types";
+import type {
+  ContextMap,
+  DevinMessage,
+  DevinSessionResult,
+  DevinSessionStatus,
+} from "@/lib/types";
 
 /**
  * Devin API client (app.devin.ai).
@@ -76,5 +81,69 @@ export async function createDevinSession(
   return {
     sessionId: data.session_id,
     url: data.url ?? `https://app.devin.ai/sessions/${data.session_id}`,
+  };
+}
+
+/**
+ * Status enums where Devin has finished its turn — either done or waiting on
+ * the user. Once reached, the demo stops polling. ("running" keeps polling.)
+ */
+const TERMINAL_STATUSES = new Set([
+  "blocked",
+  "finished",
+  "expired",
+  "suspended",
+  "stopped",
+]);
+
+interface DevinSessionResponse {
+  status?: string;
+  status_enum?: string | null;
+  messages?: Array<{ type?: string; message?: string }>;
+}
+
+/** Fetch a session's current status and messages for display. */
+export async function getDevinSession(
+  sessionId: string
+): Promise<DevinSessionStatus> {
+  const apiKey = process.env.DEVIN_API_KEY;
+  if (!apiKey) {
+    throw new DevinError("Devin integration is not configured.", 503);
+  }
+
+  const res = await fetch(
+    `${DEVIN_API}/session/${encodeURIComponent(sessionId)}`,
+    { headers: { Authorization: `Bearer ${apiKey}` } }
+  );
+
+  if (res.status === 401) {
+    throw new DevinError("Devin authentication failed.", 502);
+  }
+  if (res.status === 404) {
+    throw new DevinError("Devin session not found.", 404);
+  }
+  if (!res.ok) {
+    throw new DevinError(`Devin API error (${res.status}).`, 502);
+  }
+
+  const data = (await res.json()) as DevinSessionResponse;
+
+  const messages: DevinMessage[] = (data.messages ?? [])
+    .filter((m) => m.type === "devin_message" && m.message)
+    .map((m) => ({ type: m.type as string, message: m.message as string }));
+
+  const statusEnum = data.status_enum ?? null;
+  const done =
+    statusEnum !== null &&
+    TERMINAL_STATUSES.has(statusEnum) &&
+    messages.length > 0;
+
+  return {
+    sessionId,
+    status: data.status ?? "unknown",
+    statusEnum,
+    messages,
+    url: `https://app.devin.ai/sessions/${sessionId}`,
+    done,
   };
 }

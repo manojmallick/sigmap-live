@@ -1,13 +1,44 @@
 import { NextResponse } from "next/server";
-import { createDevinSession, DevinError } from "@/lib/devin";
+import {
+  createDevinSession,
+  DevinError,
+  getDevinSession,
+} from "@/lib/devin";
 import type {
   ApiError,
   DevinSessionRequest,
   DevinSessionResult,
+  DevinSessionStatus,
 } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/** GET /api/devin?sessionId=devin-... → current status + Devin's messages. */
+export async function GET(
+  request: Request
+): Promise<NextResponse<DevinSessionStatus | ApiError>> {
+  const sessionId = new URL(request.url).searchParams.get("sessionId");
+  if (!sessionId || !sessionId.startsWith("devin-")) {
+    return NextResponse.json(
+      { error: "A valid sessionId is required." },
+      { status: 400 }
+    );
+  }
+  try {
+    const status = await getDevinSession(sessionId);
+    return NextResponse.json(status);
+  } catch (err) {
+    if (err instanceof DevinError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    console.error("devin status failed:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch Devin session." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(
   request: Request
