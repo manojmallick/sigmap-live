@@ -1,0 +1,73 @@
+import type { RankResult } from "sigmap";
+
+/** A single file in the verified context map. */
+export interface ContextFile {
+  path: string;
+  language: string;
+  /** Redacted, ranked signatures for this file. */
+  signatures: string[];
+  /** Relevance score from SigMap's ranker. */
+  score: number;
+  /** Estimated tokens for this file's signatures. */
+  tokens: number;
+  confidence: RankResult["confidence"];
+}
+
+/** Token comparison between raw source and SigMap signatures. */
+export interface TokenStats {
+  rawTokens: number;
+  mappedTokens: number;
+  /** e.g. 0.979 → 97.9% reduction. */
+  reduction: number;
+  filesScanned: number;
+  filesReturned: number;
+}
+
+/** The verified context map returned by /api/analyze. */
+export interface ContextMap {
+  repo: {
+    owner: string;
+    name: string;
+    branch: string;
+    url: string;
+  };
+  query: string;
+  files: ContextFile[];
+  stats: TokenStats;
+  /** True if any secret was detected and redacted. */
+  redacted: boolean;
+  /** Unix ms when the analysis was produced. */
+  generatedAt: number;
+}
+
+export interface AnalyzeRequest {
+  url: string;
+  /** Natural-language intent used to rank files. Optional. */
+  query?: string;
+}
+
+export interface DevinSessionRequest {
+  contextMap: ContextMap;
+  prompt: string;
+}
+
+export interface DevinSessionResult {
+  sessionId: string;
+  url: string;
+}
+
+export interface AskRequest {
+  contextMap: ContextMap;
+  question: string;
+}
+
+export interface AskResult {
+  answer: string;
+  model: string;
+  /** Files the answer drew on, if the model cited any. */
+  citedFiles: string[];
+}
+
+export interface ApiError {
+  error: string;
+}
