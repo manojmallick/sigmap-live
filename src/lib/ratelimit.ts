@@ -15,8 +15,11 @@ import { Redis } from "@upstash/redis";
 export const REPO_LIMIT = 2;
 export const ASK_LIMIT = 5;
 
-const url = process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+// Vercel's Upstash Marketplace integration injects KV_REST_API_* names;
+// the standalone Upstash SDK uses UPSTASH_REDIS_REST_*. Accept either.
+const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+const token =
+  process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
 const redis = url && token ? new Redis({ url, token }) : null;
 
 /** 5 questions per IP per rolling day. */
