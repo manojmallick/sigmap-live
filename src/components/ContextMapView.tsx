@@ -28,32 +28,17 @@ export function ContextMapView({ map }: { map: ContextMap }) {
         <span className="text-xs">intent: “{map.query}”</span>
       </div>
 
-      <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">
-            Detected source folders
-          </span>
-          <span
-            className={`rounded-full px-2 py-0.5 ${
-              map.config.source === "gemini"
-                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
-                : "bg-zinc-500/15 text-zinc-500"
-            }`}
-          >
-            {map.config.source === "gemini" ? "Gemini-tailored" : "defaults"}
-          </span>
-          {map.config.srcDirs.slice(0, 12).map((d) => (
-            <code
-              key={d}
-              className="rounded bg-zinc-200 px-1.5 py-0.5 dark:bg-zinc-800"
-            >
-              {d}
-            </code>
-          ))}
-        </div>
-        {map.config.reasoning && (
-          <p className="mt-2 text-xs text-zinc-500">{map.config.reasoning}</p>
-        )}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs">
+        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+          SigMap v{map.sigmapVersion}
+        </span>
+        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-600 dark:text-emerald-400">
+          Coverage {map.stats.coverageGrade} · {map.stats.filesIncluded} of{" "}
+          {map.stats.filesTotal} source files
+        </span>
+        <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-800">
+          {map.stats.symbolsFound} symbols
+        </span>
       </div>
 
       <ul className="space-y-3">

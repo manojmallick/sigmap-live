@@ -17,18 +17,15 @@ export interface ContextFile {
 export interface TokenStats {
   rawTokens: number;
   mappedTokens: number;
-  /** e.g. 0.979 → 97.9% reduction. */
+  /** e.g. 0.93 → 93% reduction (SigMap's own reported figure). */
   reduction: number;
   filesScanned: number;
   filesReturned: number;
-}
-
-/** How the source folders were detected for this repo. */
-export interface DetectedConfig {
-  srcDirs: string[];
-  /** "gemini" = LLM-tailored to this repo; "default" = SigMap defaults. */
-  source: "gemini" | "default";
-  reasoning?: string;
+  symbolsFound: number;
+  /** SigMap coverage grade, e.g. "A". */
+  coverageGrade: string;
+  filesIncluded: number;
+  filesTotal: number;
 }
 
 /** The verified context map returned by /api/analyze. */
@@ -40,7 +37,8 @@ export interface ContextMap {
     url: string;
   };
   query: string;
-  config: DetectedConfig;
+  /** SigMap version that produced this map. */
+  sigmapVersion: string;
   files: ContextFile[];
   stats: TokenStats;
   /** True if any secret was detected and redacted. */

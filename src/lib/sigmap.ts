@@ -1,75 +1,36 @@
-import { extract, rank, scan } from "sigmap";
+import { rank } from "sigmap";
 import {
-  fetchRaw,
   getDefaultBranch,
   GitHubError,
-  listBlobs,
   parseRepoUrl,
-  type RepoBlob,
 } from "@/lib/github";
+import { runSigmap } from "@/lib/sigmap-cli";
 import { cacheKey, withCache } from "@/lib/cache";
-import { resolveRepoConfig, selectByConfig } from "@/lib/repo-config";
 import type { ContextFile, ContextMap } from "@/lib/types";
 
 /**
  * SigMap wrapper.
  *
- * NOTE: the published `sigmap` package operates on local source text via
- * `extract()` and ranks an in-memory index via `rank()`. It has no remote-URL
- * entry point (the CLAUDE.md `assembleContext()` name predates the shipped API).
- * This wrapper bridges a public GitHub repo to that programmatic API:
- *   fetch source → extract() signatures → scan() redaction → rank() relevance.
+ * Drives the real SigMap CLI on a downloaded copy of the repo (see
+ * sigmap-cli.ts) so the demo reports SigMap's own numbers — same as running
+ * `npx sigmap` locally. SigMap handles source-folder detection and coverage;
+ * we read back the full signature index and optionally rank it for display.
  */
 
-/** Map a file extension to a SigMap-supported language. */
 const EXT_LANGUAGE: Record<string, string> = {
-  js: "javascript",
-  mjs: "javascript",
-  cjs: "javascript",
-  jsx: "javascript",
-  ts: "typescript",
-  tsx: "typescript",
-  py: "python",
-  go: "go",
-  rb: "ruby",
-  java: "java",
-  rs: "rust",
-  cs: "csharp",
-  kt: "kotlin",
-  kts: "kotlin",
-  php: "php",
-  swift: "swift",
-  scala: "scala",
+  js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "javascript",
+  ts: "typescript", tsx: "typescript", py: "python", go: "go", rb: "ruby",
+  java: "java", rs: "rust", cs: "csharp", kt: "kotlin", kts: "kotlin",
+  php: "php", swift: "swift", scala: "scala",
 };
 
-/** Cap source files scanned to keep latency and rate-limit usage bounded. */
-const MAX_FILES = 80;
-/** Skip very large files (likely generated/vendored). */
-const MAX_FILE_BYTES = 200_000;
-const IGNORE_DIRS =
-  /(^|\/)(node_modules|dist|build|out|vendor|\.next|\.git|__pycache__|target|\.venv)\//;
-
-function languageFor(path: string): string | undefined {
+function languageFor(path: string): string {
   const ext = path.split(".").pop()?.toLowerCase();
-  return ext ? EXT_LANGUAGE[ext] : undefined;
+  return (ext && EXT_LANGUAGE[ext]) || "other";
 }
 
-/** ~4 chars per token — a standard rough estimate for source text. */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
-/** Keep only supported, reasonably-sized source files, capped for safety. */
-function selectSupported(blobs: RepoBlob[]): RepoBlob[] {
-  return blobs
-    .filter(
-      (b) =>
-        languageFor(b.path) !== undefined &&
-        b.size <= MAX_FILE_BYTES &&
-        !IGNORE_DIRS.test(`/${b.path}`)
-    )
-    .sort((a, b) => b.size - a.size)
-    .slice(0, MAX_FILES);
+function estimateTokens(sigs: string[]): number {
+  return Math.ceil(sigs.join("\n").length / 4);
 }
 
 export async function analyzeRepo(
@@ -77,77 +38,38 @@ export async function analyzeRepo(
   query?: string
 ): Promise<ContextMap> {
   const { owner, name, branch: pinnedBranch } = parseRepoUrl(rawUrl);
-  const intent = (query?.trim() || "main entry points and public API").slice(
-    0,
-    300
-  );
+  const intent = (query?.trim() || "main entry points and public API").slice(0, 300);
 
-  const key = cacheKey("analyze", owner, name, pinnedBranch ?? "", intent);
-
-  return withCache(key, async () => {
+  return withCache(cacheKey("analyze", owner, name, pinnedBranch ?? "", intent), async () => {
     const branch = pinnedBranch ?? (await getDefaultBranch(owner, name));
-    const allBlobs = await listBlobs(owner, name, branch);
 
-    // Detect the repo's real source folders (Gemini-tailored, defaults fallback),
-    // then scan only files in those folders — not "the largest files anywhere".
-    const config = await resolveRepoConfig(allBlobs, { owner, name });
-    const blobs = selectSupported(selectByConfig(allBlobs, config));
-
-    if (blobs.length === 0) {
-      throw new GitHubError(
-        "No supported source files found in this repository.",
-        422
-      );
-    }
-
-    // Fetch + extract signatures per file (concurrently).
-    const sigIndex = new Map<string, string[]>();
-    const languageByPath = new Map<string, string>();
-    let rawTokens = 0;
-    let redactedAny = false;
-
-    const fetched = await Promise.all(
-      blobs.map(async (blob) => {
-        const src = await fetchRaw(owner, name, branch, blob.path);
-        return { blob, src };
-      })
+    // Generation is the expensive step and is query-independent — cache it
+    // per repo+branch so different queries reuse the same SigMap run.
+    const run = await withCache(cacheKey("sigmap-run", owner, name, branch), () =>
+      runSigmap(owner, name, branch)
     );
 
-    for (const { blob, src } of fetched) {
-      if (!src) continue;
-      const language = languageFor(blob.path)!;
-      rawTokens += estimateTokens(src);
-
-      const sigs = extract(src, language);
-      if (sigs.length === 0) continue;
-
-      const { safe, redacted } = scan(sigs, blob.path);
-      if (redacted) redactedAny = true;
-
-      sigIndex.set(blob.path, safe);
-      languageByPath.set(blob.path, language);
-    }
-
-    if (sigIndex.size === 0) {
+    if (run.entries.length === 0) {
       throw new GitHubError(
-        "Could not extract any signatures from this repository.",
+        "SigMap found no source files in standard folders (src, lib, app, " +
+          "packages…). This repo may keep its code at the root.",
         422
       );
     }
 
-    const ranked = rank(intent, sigIndex, { topK: 20 });
+    // Rank all included files by relevance to the intent (ordering only —
+    // every file SigMap included is kept).
+    const index = new Map(run.entries);
+    const ranked = rank(intent, index, { topK: index.size });
 
     const files: ContextFile[] = ranked.map((r) => ({
       path: r.file,
-      language: languageByPath.get(r.file) ?? "unknown",
+      language: languageFor(r.file),
       signatures: r.sigs,
       score: r.score,
-      tokens: r.tokens,
+      tokens: r.tokens || estimateTokens(r.sigs),
       confidence: r.confidence,
     }));
-
-    const mappedTokens = files.reduce((sum, f) => sum + f.tokens, 0);
-    const reduction = rawTokens > 0 ? 1 - mappedTokens / rawTokens : 0;
 
     return {
       repo: {
@@ -157,20 +79,20 @@ export async function analyzeRepo(
         url: `https://github.com/${owner}/${name}`,
       },
       query: intent,
-      config: {
-        srcDirs: config.srcDirs,
-        source: config.source,
-        reasoning: config.reasoning,
-      },
+      sigmapVersion: run.version,
       files,
       stats: {
-        rawTokens,
-        mappedTokens,
-        reduction,
-        filesScanned: sigIndex.size,
+        rawTokens: run.rawTokens,
+        mappedTokens: run.mappedTokens,
+        reduction: run.reduction,
+        filesScanned: run.filesScanned,
         filesReturned: files.length,
+        symbolsFound: run.symbolsFound,
+        coverageGrade: run.coverageGrade,
+        filesIncluded: run.filesIncluded,
+        filesTotal: run.filesTotal,
       },
-      redacted: redactedAny,
+      redacted: run.redacted,
       generatedAt: Date.now(),
     } satisfies ContextMap;
   });
