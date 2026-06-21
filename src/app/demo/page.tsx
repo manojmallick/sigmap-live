@@ -4,7 +4,7 @@ import { DemoClient } from "@/components/DemoClient";
 export const metadata: Metadata = {
   title: "SigMap Demo — verified context for AI coding agents",
   description:
-    "Paste a GitHub repo. SigMap extracts verified signatures and ranks the files that matter — feeding agents like Devin the right context with ~97% fewer tokens.",
+    "Paste a GitHub repo. SigMap extracts verified signatures and ranks the files that matter — feeding AI coding agents the right context with ~93% fewer tokens.",
 };
 
 export default function DemoPage() {

@@ -53,31 +53,6 @@ export interface AnalyzeRequest {
   query?: string;
 }
 
-export interface DevinSessionRequest {
-  contextMap: ContextMap;
-  prompt: string;
-}
-
-export interface DevinSessionResult {
-  sessionId: string;
-  url: string;
-}
-
-export interface DevinMessage {
-  type: string;
-  message: string;
-}
-
-export interface DevinSessionStatus {
-  sessionId: string;
-  status: string;
-  statusEnum: string | null;
-  messages: DevinMessage[];
-  url: string;
-  /** True once Devin has reached a terminal/waiting state — stop polling. */
-  done: boolean;
-}
-
 export interface AskRequest {
   contextMap: ContextMap;
   question: string;

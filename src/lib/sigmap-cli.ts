@@ -109,18 +109,38 @@ export async function runSigmap(
 
     // 2. Run the real SigMap CLI in that directory.
     const cli = resolveCliPath();
-    const { stdout, stderr } = await execFileAsync(process.execPath, [cli], {
-      cwd: repoDir,
-      // keep any home-dir writes (MCP auto-register) inside the sandbox
-      env: { ...process.env, HOME: work },
-      timeout: 50_000, // fail cleanly within the function's 60s budget
-      maxBuffer: 16 * 1024 * 1024,
-    });
-    // SigMap prints its summary block to stderr — parse both streams.
-    const stats = parseStats(`${stdout}\n${stderr}`);
+    const runCli = async () => {
+      const { stdout, stderr } = await execFileAsync(process.execPath, [cli], {
+        cwd: repoDir,
+        // keep any home-dir writes (MCP auto-register) inside the sandbox
+        env: { ...process.env, HOME: work },
+        timeout: 50_000, // fail cleanly within the function's 60s budget
+        maxBuffer: 16 * 1024 * 1024,
+      });
+      // SigMap prints its summary block to stderr — parse both streams.
+      return parseStats(`${stdout}\n${stderr}`);
+    };
+
+    let stats = await runCli();
+    let index = buildSigIndex(repoDir);
+
+    // Fallback: SigMap only scans standard source folders by default. Repos
+    // that keep code at the root (e.g. a single index.js) scan to zero — write
+    // a config that includes the root and re-run so the demo still works.
+    if (index.size === 0) {
+      await writeFile(
+        join(repoDir, "gen-context.config.json"),
+        JSON.stringify({
+          srcDirs: ["."],
+          exclude: ["node_modules", ".git", "dist", "build", "test", "tests"],
+          maxDepth: 4,
+        })
+      );
+      stats = await runCli();
+      index = buildSigIndex(repoDir);
+    }
 
     // 3. Read back the full signature index SigMap generated.
-    const index = buildSigIndex(repoDir);
     const entries = [...index.entries()];
     const redacted = entries.some(([, sigs]) =>
       sigs.some((s) => s.includes("REDACTED"))
