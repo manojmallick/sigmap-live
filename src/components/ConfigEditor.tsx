@@ -5,9 +5,11 @@ import type { ContextMap, RepoConfigInput } from "@/lib/types";
 
 const TEMPLATE: RepoConfigInput = {
   srcDirs: ["src", "lib", "app", "packages"],
-  exclude: ["test", "tests", "examples", "docs"],
-  coverageTarget: 0.8,
-  maxTokens: 8000,
+  exclude: ["test", "tests", "examples", "docs", "locales", "i18n", "benchmarks"],
+  maxDepth: 10,
+  coverageTarget: 0.9,
+  autoMaxTokens: false,
+  maxTokens: 200000,
 };
 
 /**
@@ -100,7 +102,8 @@ export function ConfigEditor({
               reset template
             </button>
             <span className="text-xs text-zinc-400">
-              fields: srcDirs · exclude · maxDepth · coverageTarget · maxTokens
+              fields: srcDirs · exclude · maxDepth · coverageTarget · maxTokens ·
+              autoMaxTokens · strategy
             </span>
           </div>
           {error && (

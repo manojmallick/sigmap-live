@@ -43,6 +43,8 @@ export interface ContextMap {
   appliedConfig: RepoConfigInput | null;
   /** The generated copilot-instructions.md — the artifact an agent consumes. */
   output: string;
+  /** Why coverage is what it is (SigMap's tip), shown when coverage is low. */
+  coverageNote: string;
   files: ContextFile[];
   stats: TokenStats;
   /** True if any secret was detected and redacted. */
@@ -55,10 +57,20 @@ export interface ContextMap {
 export interface RepoConfigInput {
   srcDirs?: string[];
   exclude?: string[];
+  /** How deep to recurse (default 6). Raise for nested monorepos. */
   maxDepth?: number;
   /** 0–1 fraction of source files to target. */
   coverageTarget?: number;
+  /** Hard token budget for the output (used when autoMaxTokens is false). */
   maxTokens?: number;
+  /** false = pin maxTokens; true = auto-scale to the model context window. */
+  autoMaxTokens?: boolean;
+  /** Model context window used to auto-scale the budget. */
+  modelContextLimit?: number;
+  /** Max signatures kept per file. */
+  maxSigsPerFile?: number;
+  /** "full" | "per-module" | "hot-cold" — per-module for full coverage. */
+  strategy?: string;
 }
 
 export interface AnalyzeRequest {

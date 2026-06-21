@@ -33,6 +33,27 @@ function estimateTokens(sigs: string[]): number {
   return Math.ceil(sigs.join("\n").length / 4);
 }
 
+/**
+ * Tuned default config for the demo: deeper recursion + a generous budget +
+ * excluding non-source noise (tests, locales, benchmarks) so coverage is
+ * healthy on real projects. Bare `npx sigmap` uses depth 6; users can reset
+ * via the config editor to compare.
+ */
+export const DEFAULT_CONFIG: RepoConfigInput = {
+  maxDepth: 10,
+  autoMaxTokens: false,
+  maxTokens: 200000,
+  coverageTarget: 0.9,
+  exclude: [
+    "node_modules", ".git", "dist", "build", "out", "coverage", "target",
+    "vendor", ".next", "__pycache__",
+    "test", "tests", "__tests__", "spec", "e2e",
+    "example", "examples", "samples", "demo",
+    "docs", "doc", "website", "locales", "i18n",
+    "bench", "benchmarks", "treeshake", "fixtures", "scripts",
+  ],
+};
+
 export async function analyzeRepo(
   rawUrl: string,
   query?: string,
@@ -40,8 +61,10 @@ export async function analyzeRepo(
 ): Promise<ContextMap> {
   const { owner, name, branch: pinnedBranch } = parseRepoUrl(rawUrl);
   const intent = (query?.trim() || "main entry points and public API").slice(0, 300);
-  const cfg = config && Object.keys(config).length > 0 ? config : null;
-  const cfgKey = cfg ? JSON.stringify(cfg) : "";
+  // Use the caller's config if given, otherwise the tuned demo default.
+  const cfg =
+    config && Object.keys(config).length > 0 ? config : DEFAULT_CONFIG;
+  const cfgKey = JSON.stringify(cfg);
 
   return withCache(cacheKey("analyze", owner, name, pinnedBranch ?? "", intent, cfgKey), async () => {
     const branch = pinnedBranch ?? (await getDefaultBranch(owner, name));
@@ -85,6 +108,7 @@ export async function analyzeRepo(
       sigmapVersion: run.version,
       appliedConfig: cfg,
       output: run.output,
+      coverageNote: run.coverageNote,
       files,
       stats: {
         rawTokens: run.rawTokens,

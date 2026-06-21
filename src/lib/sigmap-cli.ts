@@ -34,6 +34,8 @@ export interface SigmapRun {
   version: string;
   /** The generated .github/copilot-instructions.md content. */
   output: string;
+  /** SigMap's own note about coverage/budget (tips printed to stderr). */
+  coverageNote: string;
 }
 
 /** Resolve the gen-context.js CLI shipped inside the sigmap package.
@@ -66,6 +68,14 @@ function parseStats(stdout: string) {
   );
   const version = /SigMap v([\d.]+)/.exec(stdout)?.[1] ?? "unknown";
 
+  // SigMap prints actionable tips (e.g. "large repo — consider per-module")
+  // and a budget annotation on the coverage line — capture both as the note.
+  const tips = [...stdout.matchAll(/tip:\s*(.+)/gi)].map((m) =>
+    m[1].trim().replace(/^["']|["']$/g, "")
+  );
+  const budget = /Coverage[^\n]*\[([^\]]+)\]/.exec(stdout)?.[1];
+  const note = [budget, ...tips].filter(Boolean).join(" · ");
+
   return {
     filesScanned,
     symbolsFound,
@@ -76,6 +86,7 @@ function parseStats(stdout: string) {
     filesIncluded: parseInt0(cov?.[3]),
     filesTotal: parseInt0(cov?.[4]),
     version,
+    note,
   };
 }
 
@@ -138,16 +149,25 @@ export async function runSigmap(
     let index = buildSigIndex(repoDir);
 
     // Fallback: SigMap only scans standard source folders by default. Repos
-    // that keep code at the root (e.g. a single index.js) scan to zero — write
-    // a config that includes the root and re-run so the demo still works.
-    // Skipped when the user supplied their own config (they control it).
-    if (index.size === 0 && !hasUserConfig) {
+    // that keep code at the root (e.g. a single index.js) scan to zero — add
+    // the root to srcDirs and re-run. Triggered whenever nothing was found and
+    // the caller didn't pin srcDirs themselves (their other config is merged).
+    const userSetSrcDirs = !!config?.srcDirs && config.srcDirs.length > 0;
+    if (index.size === 0 && !userSetSrcDirs) {
       await writeFile(
         join(repoDir, "gen-context.config.json"),
         JSON.stringify({
+          ...(config ?? {}),
           srcDirs: ["."],
-          exclude: ["node_modules", ".git", "dist", "build", "test", "tests"],
-          maxDepth: 4,
+          maxDepth: Math.max(config?.maxDepth ?? 0, 4),
+          exclude: config?.exclude ?? [
+            "node_modules",
+            ".git",
+            "dist",
+            "build",
+            "test",
+            "tests",
+          ],
         })
       );
       stats = await runCli();
@@ -189,6 +209,7 @@ export async function runSigmap(
       redacted,
       version: stats.version,
       output,
+      coverageNote: stats.note,
     };
   } finally {
     await rm(work, { recursive: true, force: true }).catch(() => {});

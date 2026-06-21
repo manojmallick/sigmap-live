@@ -59,8 +59,9 @@ export async function POST(
 
   try {
     const contextMap = await analyzeRepo(body.url, body.query, body.config);
-    // Persist the canonical (no custom config) analysis for gallery/permalinks.
-    if (!body.config || Object.keys(body.config).length === 0) {
+    // Persist the canonical analysis for gallery/permalinks: plain analyses,
+    // or seed runs (which intentionally pass a tuned coverage config).
+    if (isSeed || !body.config || Object.keys(body.config).length === 0) {
       await saveAnalysis(contextMap).catch(() => {});
     }
     return NextResponse.json(contextMap);
