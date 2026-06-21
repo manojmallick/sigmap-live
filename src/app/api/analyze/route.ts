@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { analyzeRepo } from "@/lib/sigmap";
 import { GitHubError, parseRepoUrl } from "@/lib/github";
 import { checkRepoLimit, getClientIp, REPO_LIMIT } from "@/lib/ratelimit";
+import { saveAnalysis } from "@/lib/store";
 import type { AnalyzeRequest, ApiError, ContextMap } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -37,20 +38,31 @@ export async function POST(
     );
   }
 
-  const limit = await checkRepoLimit(getClientIp(request), repoId);
-  if (!limit.ok) {
-    return NextResponse.json(
-      {
-        error: `Daily limit reached — ${REPO_LIMIT} repositories per day. ` +
-          `Re-analyzing a repo you already tried today is still free. ` +
-          `Try again tomorrow, or run it yourself with \`npx sigmap\`.`,
-      },
-      { status: 429 }
-    );
+  // Seeding bypasses the per-IP limit (server-side, secret-gated).
+  const seedSecret = process.env.SEED_SECRET;
+  const isSeed =
+    !!seedSecret && request.headers.get("x-seed-secret") === seedSecret;
+
+  if (!isSeed) {
+    const limit = await checkRepoLimit(getClientIp(request), repoId);
+    if (!limit.ok) {
+      return NextResponse.json(
+        {
+          error: `Daily limit reached — ${REPO_LIMIT} repositories per day. ` +
+            `Re-analyzing a repo you already tried today is still free. ` +
+            `Try again tomorrow, or run it yourself with \`npx sigmap\`.`,
+        },
+        { status: 429 }
+      );
+    }
   }
 
   try {
     const contextMap = await analyzeRepo(body.url, body.query, body.config);
+    // Persist the canonical (no custom config) analysis for gallery/permalinks.
+    if (!body.config || Object.keys(body.config).length === 0) {
+      await saveAnalysis(contextMap).catch(() => {});
+    }
     return NextResponse.json(contextMap);
   } catch (err) {
     if (err instanceof GitHubError) {

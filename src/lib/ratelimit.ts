@@ -1,26 +1,21 @@
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { redis } from "@/lib/redis";
 
 /**
  * Per-IP daily limits for the public demo (free tier):
- *   - 2 distinct repos per day  (re-running the SAME repo is free, so the
- *     config editor's re-runs don't burn quota)
- *   - 5 questions per day
+ *   - 20 distinct repos per day — analysis is cheap (SigMap CLI, no LLM),
+ *     and re-running the SAME repo is free, so the config editor doesn't
+ *     burn quota.
+ *   - 5 questions per day — this is the binding limit because "Ask the
+ *     codebase" is the only feature that makes a (paid) Gemini call.
  *
  * Backed by Upstash Redis (serverless-correct, survives across function
- * instances). If the Upstash env vars aren't set the limiter degrades to a
- * no-op (enforced:false) so local dev and pre-provision deploys still work.
+ * instances). If Upstash isn't configured the limiter degrades to a no-op
+ * (enforced:false) so local dev and pre-provision deploys still work.
  */
 
-export const REPO_LIMIT = 2;
+export const REPO_LIMIT = 20;
 export const ASK_LIMIT = 5;
-
-// Vercel's Upstash Marketplace integration injects KV_REST_API_* names;
-// the standalone Upstash SDK uses UPSTASH_REDIS_REST_*. Accept either.
-const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-const token =
-  process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-const redis = url && token ? new Redis({ url, token }) : null;
 
 /** 5 questions per IP per rolling day. */
 const askLimiter = redis

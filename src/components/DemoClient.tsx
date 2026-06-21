@@ -5,6 +5,7 @@ import type { AskResult, ContextMap } from "@/lib/types";
 import { ContextMapView } from "@/components/ContextMapView";
 import { ConfigEditor } from "@/components/ConfigEditor";
 import { GeneratedOutput } from "@/components/GeneratedOutput";
+import { Gallery } from "@/components/Gallery";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 const EXAMPLE_REPO = "https://github.com/manojmallick/sigmap";
@@ -115,6 +116,8 @@ export function DemoClient() {
       )}
 
       {loading && <LoadingSkeleton />}
+
+      {!map && !loading && <Gallery onLoad={setMap} />}
 
       {map && !loading && (
         <div className="space-y-6">
