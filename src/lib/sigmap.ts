@@ -84,6 +84,7 @@ export async function analyzeRepo(
       query: intent,
       sigmapVersion: run.version,
       appliedConfig: cfg,
+      output: run.output,
       files,
       stats: {
         rawTokens: run.rawTokens,

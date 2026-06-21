@@ -41,6 +41,8 @@ export interface ContextMap {
   sigmapVersion: string;
   /** The config override applied to this run, if any (null = SigMap auto). */
   appliedConfig: RepoConfigInput | null;
+  /** The generated copilot-instructions.md — the artifact an agent consumes. */
+  output: string;
   files: ContextFile[];
   stats: TokenStats;
   /** True if any secret was detected and redacted. */

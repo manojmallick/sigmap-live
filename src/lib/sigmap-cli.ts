@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, readdir, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { promisify } from "node:util";
@@ -32,6 +32,8 @@ export interface SigmapRun {
   filesTotal: number;
   redacted: boolean;
   version: string;
+  /** The generated .github/copilot-instructions.md content. */
+  output: string;
 }
 
 /** Resolve the gen-context.js CLI shipped inside the sigmap package.
@@ -158,6 +160,20 @@ export async function runSigmap(
       sigs.some((s) => s.includes("REDACTED"))
     );
 
+    // The actual artifact SigMap writes — what an agent would consume.
+    let output = "";
+    try {
+      output = await readFile(
+        join(repoDir, ".github", "copilot-instructions.md"),
+        "utf8"
+      );
+      if (output.length > 500_000) {
+        output = output.slice(0, 500_000) + "\n\n… (truncated)";
+      }
+    } catch {
+      // no output file — leave empty
+    }
+
     return {
       entries,
       filesScanned: stats.filesScanned || entries.length,
@@ -172,6 +188,7 @@ export async function runSigmap(
       filesTotal: stats.filesTotal || entries.length,
       redacted,
       version: stats.version,
+      output,
     };
   } finally {
     await rm(work, { recursive: true, force: true }).catch(() => {});
