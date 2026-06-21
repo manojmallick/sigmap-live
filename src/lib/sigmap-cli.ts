@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import * as tar from "tar";
 import { buildSigIndex } from "sigmap";
 import { GitHubError } from "@/lib/github";
+import type { RepoConfigInput } from "@/lib/types";
 
 const execFileAsync = promisify(execFile);
 
@@ -79,7 +80,8 @@ function parseStats(stdout: string) {
 export async function runSigmap(
   owner: string,
   name: string,
-  branch: string
+  branch: string,
+  config?: RepoConfigInput | null
 ): Promise<SigmapRun> {
   const work = await mkdtemp(join(tmpdir(), "sigmap-"));
   try {
@@ -107,6 +109,15 @@ export async function runSigmap(
     }
     const repoDir = join(work, dirs[0].name);
 
+    // If the user supplied a config override, write it so SigMap uses it.
+    const hasUserConfig = !!config && Object.keys(config).length > 0;
+    if (hasUserConfig) {
+      await writeFile(
+        join(repoDir, "gen-context.config.json"),
+        JSON.stringify(config)
+      );
+    }
+
     // 2. Run the real SigMap CLI in that directory.
     const cli = resolveCliPath();
     const runCli = async () => {
@@ -127,7 +138,8 @@ export async function runSigmap(
     // Fallback: SigMap only scans standard source folders by default. Repos
     // that keep code at the root (e.g. a single index.js) scan to zero — write
     // a config that includes the root and re-run so the demo still works.
-    if (index.size === 0) {
+    // Skipped when the user supplied their own config (they control it).
+    if (index.size === 0 && !hasUserConfig) {
       await writeFile(
         join(repoDir, "gen-context.config.json"),
         JSON.stringify({

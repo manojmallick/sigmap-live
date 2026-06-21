@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { AskResult, ContextMap } from "@/lib/types";
 import { ContextMapView } from "@/components/ContextMapView";
+import { ConfigEditor } from "@/components/ConfigEditor";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
 const EXAMPLE_REPO = "https://github.com/manojmallick/sigmap";
@@ -117,6 +118,8 @@ export function DemoClient() {
       {map && !loading && (
         <div className="space-y-6">
           <ContextMapView map={map} />
+
+          <ConfigEditor map={map} onResult={setMap} />
 
           <div className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
             <h2 className="text-sm font-semibold">Ask the codebase</h2>

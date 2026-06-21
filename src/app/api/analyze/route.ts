@@ -50,7 +50,7 @@ export async function POST(
   }
 
   try {
-    const contextMap = await analyzeRepo(body.url, body.query);
+    const contextMap = await analyzeRepo(body.url, body.query, body.config);
     return NextResponse.json(contextMap);
   } catch (err) {
     if (err instanceof GitHubError) {

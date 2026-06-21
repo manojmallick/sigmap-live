@@ -6,7 +6,7 @@ import {
 } from "@/lib/github";
 import { runSigmap } from "@/lib/sigmap-cli";
 import { cacheKey, withCache } from "@/lib/cache";
-import type { ContextFile, ContextMap } from "@/lib/types";
+import type { ContextFile, ContextMap, RepoConfigInput } from "@/lib/types";
 
 /**
  * SigMap wrapper.
@@ -35,18 +35,21 @@ function estimateTokens(sigs: string[]): number {
 
 export async function analyzeRepo(
   rawUrl: string,
-  query?: string
+  query?: string,
+  config?: RepoConfigInput | null
 ): Promise<ContextMap> {
   const { owner, name, branch: pinnedBranch } = parseRepoUrl(rawUrl);
   const intent = (query?.trim() || "main entry points and public API").slice(0, 300);
+  const cfg = config && Object.keys(config).length > 0 ? config : null;
+  const cfgKey = cfg ? JSON.stringify(cfg) : "";
 
-  return withCache(cacheKey("analyze", owner, name, pinnedBranch ?? "", intent), async () => {
+  return withCache(cacheKey("analyze", owner, name, pinnedBranch ?? "", intent, cfgKey), async () => {
     const branch = pinnedBranch ?? (await getDefaultBranch(owner, name));
 
     // Generation is the expensive step and is query-independent — cache it
-    // per repo+branch so different queries reuse the same SigMap run.
-    const run = await withCache(cacheKey("sigmap-run", owner, name, branch), () =>
-      runSigmap(owner, name, branch)
+    // per repo+branch+config so different queries reuse the same SigMap run.
+    const run = await withCache(cacheKey("sigmap-run", owner, name, branch, cfgKey), () =>
+      runSigmap(owner, name, branch, cfg)
     );
 
     if (run.entries.length === 0) {
@@ -80,6 +83,7 @@ export async function analyzeRepo(
       },
       query: intent,
       sigmapVersion: run.version,
+      appliedConfig: cfg,
       files,
       stats: {
         rawTokens: run.rawTokens,

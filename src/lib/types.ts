@@ -39,6 +39,8 @@ export interface ContextMap {
   query: string;
   /** SigMap version that produced this map. */
   sigmapVersion: string;
+  /** The config override applied to this run, if any (null = SigMap auto). */
+  appliedConfig: RepoConfigInput | null;
   files: ContextFile[];
   stats: TokenStats;
   /** True if any secret was detected and redacted. */
@@ -47,10 +49,22 @@ export interface ContextMap {
   generatedAt: number;
 }
 
+/** User-editable subset of SigMap's gen-context.config.json. */
+export interface RepoConfigInput {
+  srcDirs?: string[];
+  exclude?: string[];
+  maxDepth?: number;
+  /** 0–1 fraction of source files to target. */
+  coverageTarget?: number;
+  maxTokens?: number;
+}
+
 export interface AnalyzeRequest {
   url: string;
   /** Natural-language intent used to rank files. Optional. */
   query?: string;
+  /** Optional config override — when set, SigMap runs with this config. */
+  config?: RepoConfigInput;
 }
 
 export interface AskRequest {
