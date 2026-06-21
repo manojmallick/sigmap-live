@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { askCodebase, GeminiError } from "@/lib/gemini";
+import { ASK_LIMIT, checkAskLimit, getClientIp } from "@/lib/ratelimit";
 import type { ApiError, AskRequest, AskResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -19,6 +20,17 @@ export async function POST(
     return NextResponse.json(
       { error: "A context map and a question are required." },
       { status: 400 }
+    );
+  }
+
+  const limit = await checkAskLimit(getClientIp(request));
+  if (!limit.ok) {
+    return NextResponse.json(
+      {
+        error: `Daily limit reached — ${ASK_LIMIT} questions per day. ` +
+          `Try again tomorrow, or run it yourself with \`npx sigmap ask\`.`,
+      },
+      { status: 429 }
     );
   }
 
