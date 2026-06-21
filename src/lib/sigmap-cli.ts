@@ -3,6 +3,7 @@ import { mkdtemp, rm, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { promisify } from "node:util";
+import * as tar from "tar";
 import { buildSigIndex } from "sigmap";
 import { GitHubError } from "@/lib/github";
 
@@ -94,7 +95,8 @@ export async function runSigmap(
     }
     const tgz = join(work, "repo.tgz");
     await writeFile(tgz, Buffer.from(await res.arrayBuffer()));
-    await execFileAsync("tar", ["-xzf", tgz, "-C", work]);
+    // Pure-JS extraction — the Vercel function runtime has no system `tar`.
+    await tar.x({ file: tgz, cwd: work });
 
     // codeload extracts to a single <name>-<branch>/ directory.
     const dirs = (await readdir(work, { withFileTypes: true })).filter((d) =>

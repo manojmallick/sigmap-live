@@ -12,7 +12,8 @@
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "sigmap": "^7.24.2"
+    "sigmap": "^7.24.2",
+    "tar": "^7.5.16"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
