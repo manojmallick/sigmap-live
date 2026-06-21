@@ -202,7 +202,11 @@ export async function runSigmap(
         entries.reduce((n, [, s]) => n + s.length, 0),
       rawTokens: stats.rawTokens,
       mappedTokens: stats.mappedTokens,
-      reduction: stats.reduction,
+      // Precise ratio — SigMap only prints a rounded integer % to stdout.
+      reduction:
+        stats.rawTokens > 0
+          ? 1 - stats.mappedTokens / stats.rawTokens
+          : stats.reduction,
       coverageGrade: stats.coverageGrade,
       filesIncluded: stats.filesIncluded || entries.length,
       filesTotal: stats.filesTotal || entries.length,

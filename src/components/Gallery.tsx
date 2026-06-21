@@ -66,7 +66,7 @@ export function Gallery({ onLoad }: { onLoad: (m: ContextMap) => void }) {
             {e.summary && (
               <p className="mt-2 text-xs">
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {Math.round(e.summary.reduction * 100)}% fewer tokens
+                  {(e.summary.reduction * 100).toFixed(1)}% fewer tokens
                 </span>
                 <span className="text-zinc-500">
                   {" "}
