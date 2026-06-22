@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/seed",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/compare",
+      "schedule": "0 4 * * 1"
     }
   ]
 }

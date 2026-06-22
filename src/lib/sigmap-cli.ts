@@ -92,6 +92,60 @@ function parseStats(stdout: string) {
   };
 }
 
+const SOURCE_EXT =
+  /\.(js|mjs|cjs|jsx|ts|tsx|py|go|rb|java|rs|cs|kt|kts|php|swift|scala)$/i;
+const SKIP_DIR =
+  /(^|\/)(node_modules|\.git|dist|build|out|coverage|vendor|target|test|tests|__tests__|locales|i18n|bench|benchmarks|fixtures|examples|docs|scripts)\//i;
+
+/**
+ * Download a repo and concatenate its raw source — the "without SigMap"
+ * baseline (what you'd otherwise feed an agent). Capped to fit the model.
+ */
+export async function downloadAndConcatSource(
+  owner: string,
+  name: string,
+  branch: string,
+  capChars = 480_000
+): Promise<{ text: string; capped: boolean }> {
+  const work = await mkdtemp(join(tmpdir(), "sigmap-raw-"));
+  try {
+    const tarUrl = `https://codeload.github.com/${owner}/${name}/tar.gz/refs/heads/${encodeURIComponent(
+      branch
+    )}`;
+    const res = await fetch(tarUrl, { headers: { "User-Agent": "sigmap-live" } });
+    if (!res.ok) throw new GitHubError(`Could not download (${res.status}).`, 502);
+    const tgz = join(work, "repo.tgz");
+    await writeFile(tgz, Buffer.from(await res.arrayBuffer()));
+    await tar.x({ file: tgz, cwd: work });
+    const dirs = (await readdir(work, { withFileTypes: true })).filter((d) =>
+      d.isDirectory()
+    );
+    const repoDir = join(work, dirs[0].name);
+
+    const all = await readdir(repoDir, { recursive: true });
+    let text = "";
+    let capped = false;
+    for (const rel of all as string[]) {
+      if (!SOURCE_EXT.test(rel) || SKIP_DIR.test(`/${rel}`)) continue;
+      let body = "";
+      try {
+        body = await readFile(join(repoDir, rel), "utf8");
+      } catch {
+        continue;
+      }
+      const block = `\n\n// ===== ${rel} =====\n${body}`;
+      if (text.length + block.length > capChars) {
+        capped = true;
+        break;
+      }
+      text += block;
+    }
+    return { text: text.trim(), capped };
+  } finally {
+    await rm(work, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 /**
  * Score how grounded an AI answer is in the provided context, via the real
  * `sigmap judge` CLI. Uses the already-generated context markdown — no repo

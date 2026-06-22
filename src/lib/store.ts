@@ -1,5 +1,5 @@
 import { redis } from "@/lib/redis";
-import type { ContextMap } from "@/lib/types";
+import type { Comparison, ContextMap } from "@/lib/types";
 
 /**
  * Persists analysis results (the tiny redacted signature map — never source)
@@ -57,4 +57,16 @@ export async function loadSummary(
 ): Promise<SavedSummary | null> {
   if (!redis) return null;
   return (await redis.get<SavedSummary>(`summary:${repoKey(repoId)}`)) ?? null;
+}
+
+export async function saveComparison(c: Comparison): Promise<void> {
+  if (!redis) return;
+  await redis.set(`comparison:${repoKey(c.repoId)}`, c, { ex: TTL_SECONDS });
+}
+
+export async function loadComparison(
+  repoId: string
+): Promise<Comparison | null> {
+  if (!redis) return null;
+  return (await redis.get<Comparison>(`comparison:${repoKey(repoId)}`)) ?? null;
 }

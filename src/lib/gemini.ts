@@ -50,6 +50,77 @@ interface GeminiResponse {
     content?: { parts?: Array<{ text?: string }> };
   }>;
   promptFeedback?: { blockReason?: string };
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
+}
+
+/** gemini-2.5-flash pricing (USD per token). */
+const FLASH_IN = 0.3 / 1_000_000;
+const FLASH_OUT = 2.5 / 1_000_000;
+
+export interface TimedAnswer {
+  answer: string;
+  promptTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  cost: number;
+}
+
+/**
+ * Answer a question over an arbitrary context block, measuring real prompt
+ * tokens (from Gemini's usage metadata), latency, and cost. Used to benchmark
+ * "with vs without SigMap". Returns null if not configured / on error.
+ */
+export async function geminiTimed(
+  contextText: string,
+  question: string,
+  nowMs: number
+): Promise<TimedAnswer | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+
+  const prompt = `${contextText}\n\n---\nQuestion: ${question.trim()}`;
+  try {
+    const res = await fetch(
+      `${GLA_BASE}/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 800 },
+        }),
+      }
+    );
+    const latencyMs = elapsed(nowMs);
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as GeminiResponse;
+    const answer =
+      data.candidates?.[0]?.content?.parts
+        ?.map((p) => p.text ?? "")
+        .join("")
+        .trim() ?? "";
+    const promptTokens = data.usageMetadata?.promptTokenCount ?? 0;
+    const outputTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
+    return {
+      answer,
+      promptTokens,
+      outputTokens,
+      latencyMs,
+      cost: promptTokens * FLASH_IN + outputTokens * FLASH_OUT,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function elapsed(start: number): number {
+  return Math.max(0, Date.now() - start);
 }
 
 export async function askCodebase(

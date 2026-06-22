@@ -119,6 +119,26 @@ export interface AdaptResult {
   output: string;
 }
 
+export interface ComparisonSide {
+  promptTokens: number;
+  latencyMs: number;
+  /** ~USD cost of this call. */
+  cost: number;
+  answerPreview: string;
+}
+
+/** Precomputed "answer the same question with vs without SigMap" benchmark. */
+export interface Comparison {
+  repoId: string;
+  question: string;
+  model: string;
+  withSigmap: ComparisonSide;
+  withoutSigmap: ComparisonSide;
+  /** True if the raw source was capped to fit the model context. */
+  rawCapped: boolean;
+  generatedAt: number;
+}
+
 export interface ApiError {
   error: string;
 }

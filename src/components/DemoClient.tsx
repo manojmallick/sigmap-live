@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { AskResult, ContextMap, JudgeResult } from "@/lib/types";
 import { ContextMapView } from "@/components/ContextMapView";
+import { Comparison } from "@/components/Comparison";
 import { ConfigEditor } from "@/components/ConfigEditor";
 import { GeneratedOutput } from "@/components/GeneratedOutput";
 import { FileFinder } from "@/components/FileFinder";
@@ -143,6 +144,8 @@ export function DemoClient() {
       {map && !loading && (
         <div className="space-y-6">
           <ContextMapView map={map} />
+
+          <Comparison map={map} />
 
           <ConfigEditor map={map} onResult={setMap} />
 
