@@ -62,9 +62,10 @@ export function ContextMapView({ map }: { map: ContextMap }) {
               {map.validation && (
                 <span
                   className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-800"
-                  title="sigmap validate"
+                  title={`sigmap validate — ${map.validation}`}
                 >
-                  ✓ validate: {map.validation}
+                  ✓ {map.validation.replace(/\s*coverage:.*/i, "").trim() ||
+                    "validated"}
                 </span>
               )}
             </div>

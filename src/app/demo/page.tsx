@@ -6,7 +6,7 @@ import { FeatureGrid } from "@/components/FeatureGrid";
 export const metadata: Metadata = {
   title: "SigMap Demo — verified context for AI coding agents",
   description:
-    "Paste a GitHub repo. SigMap extracts verified signatures and ranks the files that matter — feeding AI coding agents the right context with ~93% fewer tokens.",
+    "Paste a GitHub repo. SigMap extracts verified signatures and ranks the files that matter — feeding AI coding agents the right context with up to ~97% fewer tokens.",
 };
 
 // SigMap's published benchmark figures (sigmap.io).
@@ -31,7 +31,7 @@ const STEPS = [
   {
     n: "3",
     title: "Feed your agent",
-    body: "~93% fewer tokens. Copy the context file, ask the codebase, or run npx sigmap in your repo.",
+    body: "Up to ~97% fewer tokens. Copy the context file, ask the codebase, or run npx sigmap in your repo.",
   },
 ];
 
@@ -45,7 +45,7 @@ export default function DemoPage() {
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
           Give your agent the right context —{" "}
           <span className="text-emerald-600 dark:text-emerald-400">
-            ~93% fewer tokens
+            up to ~97% fewer tokens
           </span>
         </h1>
         <p className="max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
