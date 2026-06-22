@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     "/api/benchmark": ["./node_modules/sigmap/**"],
     "/api/judge": ["./node_modules/sigmap/**"],
     "/api/adapt": ["./node_modules/sigmap/**"],
+    "/api/cron/compare": ["./node_modules/sigmap/**"],
   },
 };
 

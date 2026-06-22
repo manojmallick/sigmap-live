@@ -66,6 +66,16 @@ export function Comparison({ map }: { map: ContextMap }) {
         <Win value={`${speed.toFixed(1)}×`} label="faster" />
         <Win value={`${costCut.toFixed(0)}%`} label="cheaper" />
       </div>
+
+      <p className="rounded-lg bg-zinc-100 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+        <span className="font-medium text-zinc-800 dark:text-zinc-200">
+          Comparable quality:
+        </span>{" "}
+        both answers verified against the real source (sigmap judge) —{" "}
+        {Math.round(data.withSigmap.groundedness * 100)}% grounded with SigMap
+        vs {Math.round(data.withoutSigmap.groundedness * 100)}% without — at{" "}
+        {tokRatio.toFixed(0)}× fewer tokens.
+      </p>
     </div>
   );
 
@@ -99,6 +109,9 @@ export function Comparison({ map }: { map: ContextMap }) {
         <div className="mt-0.5 flex items-baseline gap-3 text-sm">
           <span className="font-bold">{secs(s.latencyMs)}</span>
           <span className="text-xs text-zinc-500">· {usd(s.cost)}</span>
+        </div>
+        <div className="mt-0.5 text-xs text-zinc-500">
+          {Math.round(s.groundedness * 100)}% grounded
         </div>
       </div>
     );

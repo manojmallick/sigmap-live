@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { CURATED } from "@/lib/curated";
 import { geminiTimed } from "@/lib/gemini";
-import { downloadAndConcatSource } from "@/lib/sigmap-cli";
+import { downloadAndConcatSource, judgeResponse } from "@/lib/sigmap-cli";
 import { loadAnalysis, saveComparison } from "@/lib/store";
 import type { Comparison } from "@/lib/types";
 
@@ -67,6 +67,14 @@ export async function GET(request: Request) {
         continue;
       }
 
+      // Same-quality proof: judge BOTH answers against the real source (ground
+      // truth) — a fair common baseline — to show the SigMap answer is as
+      // grounded in the actual code as the raw-context answer.
+      const [withJudge, withoutJudge] = await Promise.all([
+        judgeResponse(raw.text, withRes.answer).catch(() => ({ score: 0 })),
+        judgeResponse(raw.text, withoutRes.answer).catch(() => ({ score: 0 })),
+      ]);
+
       const comparison: Comparison = {
         repoId: c.repoId.toLowerCase(),
         question: QUESTION,
@@ -75,12 +83,14 @@ export async function GET(request: Request) {
           promptTokens: withRes.promptTokens,
           latencyMs: withRes.latencyMs,
           cost: withRes.cost,
+          groundedness: withJudge.score,
           answerPreview: preview(withRes.answer),
         },
         withoutSigmap: {
           promptTokens: withoutRes.promptTokens,
           latencyMs: withoutRes.latencyMs,
           cost: withoutRes.cost,
+          groundedness: withoutJudge.score,
           answerPreview: preview(withoutRes.answer),
         },
         rawCapped: raw.capped,

@@ -124,6 +124,8 @@ export interface ComparisonSide {
   latencyMs: number;
   /** ~USD cost of this call. */
   cost: number;
+  /** 0–1 groundedness of this answer in its own context (sigmap judge). */
+  groundedness: number;
   answerPreview: string;
 }
 
