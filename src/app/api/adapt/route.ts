@@ -11,7 +11,7 @@ const ADAPTERS = new Set([
   "windsurf",
   "gemini",
   "codex",
-  "opencode",
+  "openai",
 ]);
 
 /**

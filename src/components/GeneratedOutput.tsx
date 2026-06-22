@@ -11,7 +11,6 @@ const ADAPTERS: Array<{ id: string; label: string; file: string }> = [
   { id: "windsurf", label: "Windsurf", file: ".windsurfrules" },
   { id: "gemini", label: "Gemini", file: "gemini-context.md" },
   { id: "codex", label: "Codex", file: "AGENTS.md" },
-  { id: "opencode", label: "OpenCode", file: "opencode.md" },
 ];
 
 /**

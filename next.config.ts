@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/analyze": ["./node_modules/sigmap/**"],
     "/api/benchmark": ["./node_modules/sigmap/**"],
+    "/api/judge": ["./node_modules/sigmap/**"],
+    "/api/adapt": ["./node_modules/sigmap/**"],
   },
 };
 
