@@ -79,7 +79,7 @@ export default function DemoPage() {
           ))}
         </dl>
         <p className="text-xs text-zinc-400">
-          SigMap’s published benchmarks · sigmap.io
+          SigMap v7.25 benchmark · 21 repos · 90 retrieval tasks · sigmap.io
         </p>
       </header>
 
