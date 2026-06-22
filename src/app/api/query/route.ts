@@ -29,7 +29,12 @@ export async function POST(
   }
 
   const index = new Map(files.map((f) => [f.path, f.signatures]));
-  const ranked = rank(query.slice(0, 300), index, { topK: 12 });
+  // Drop zero-score files: SigMap's ranker is exact-token TF-IDF, so when the
+  // query shares no tokens with any signature every file scores 0 and the
+  // order is meaningless — return nothing rather than arbitrary files.
+  const ranked = rank(query.slice(0, 300), index, { topK: 12 }).filter(
+    (r) => r.score > 0
+  );
 
   return NextResponse.json({
     query,

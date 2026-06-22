@@ -77,7 +77,11 @@ export function FileFinder({ map }: { map: ContextMap }) {
             </li>
           ))}
           {results.length === 0 && (
-            <li className="text-xs text-zinc-500">No matching files.</li>
+            <li className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">
+              No strong match for those terms. SigMap’s ranker matches exact
+              tokens, so try words that appear in the code — function or class
+              names (e.g. “parse”, “router”, “validate”).
+            </li>
           )}
         </ul>
       )}
