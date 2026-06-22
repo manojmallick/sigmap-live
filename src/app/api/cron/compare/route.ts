@@ -16,6 +16,20 @@ function preview(s: string): string {
 }
 
 /**
+ * Single-call LLM latency is noisy, so sample twice and keep the best (lowest)
+ * latency per side — tokens are deterministic, so this just denoises timing.
+ */
+async function bestTimed(context: string, question: string) {
+  const runs = [];
+  for (let i = 0; i < 2; i++) {
+    const r = await geminiTimed(context, question, Date.now());
+    if (r) runs.push(r);
+  }
+  if (runs.length === 0) return null;
+  return runs.reduce((a, b) => (b.latencyMs < a.latencyMs ? b : a));
+}
+
+/**
  * Precompute the "with vs without SigMap" benchmark for each curated repo:
  * answer the same question once over the SigMap context map and once over the
  * raw source, recording real tokens / latency / cost. Seeded (never on-demand)
@@ -46,8 +60,8 @@ export async function GET(request: Request) {
         map.repo.branch
       );
 
-      const withRes = await geminiTimed(map.output, QUESTION, Date.now());
-      const withoutRes = await geminiTimed(raw.text, QUESTION, Date.now());
+      const withRes = await bestTimed(map.output, QUESTION);
+      const withoutRes = await bestTimed(raw.text, QUESTION);
       if (!withRes || !withoutRes) {
         results.push({ repo: c.repoId, ok: false });
         continue;

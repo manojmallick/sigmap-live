@@ -135,6 +135,10 @@ export async function downloadAndConcatSource(
       }
       const block = `\n\n// ===== ${rel} =====\n${body}`;
       if (text.length + block.length > capChars) {
+        // Fill remaining budget (even if a single file is larger than the cap)
+        // rather than bailing out empty.
+        const remaining = capChars - text.length;
+        if (remaining > 500) text += block.slice(0, remaining);
         capped = true;
         break;
       }
