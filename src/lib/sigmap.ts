@@ -109,6 +109,7 @@ export async function analyzeRepo(
       appliedConfig: cfg,
       output: run.output,
       coverageNote: run.coverageNote,
+      validation: run.validation,
       files,
       stats: {
         rawTokens: run.rawTokens,

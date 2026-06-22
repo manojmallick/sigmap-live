@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { AskResult, ContextMap } from "@/lib/types";
+import type { AskResult, ContextMap, JudgeResult } from "@/lib/types";
 import { ContextMapView } from "@/components/ContextMapView";
 import { ConfigEditor } from "@/components/ConfigEditor";
 import { GeneratedOutput } from "@/components/GeneratedOutput";
+import { FileFinder } from "@/components/FileFinder";
 import { Gallery } from "@/components/Gallery";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
@@ -21,6 +22,9 @@ export function DemoClient() {
   const [answer, setAnswer] = useState<AskResult | null>(null);
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
+
+  const [judgment, setJudgment] = useState<JudgeResult | null>(null);
+  const [judging, setJudging] = useState(false);
 
   async function analyze(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +56,7 @@ export function DemoClient() {
     setAsking(true);
     setAskError(null);
     setAnswer(null);
+    setJudgment(null);
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
@@ -65,6 +70,22 @@ export function DemoClient() {
       setAskError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setAsking(false);
+    }
+  }
+
+  async function judge() {
+    if (!map || !answer || judging) return;
+    setJudging(true);
+    try {
+      const res = await fetch("/api/judge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ context: map.output, response: answer.answer }),
+      });
+      const data = await res.json();
+      if (res.ok) setJudgment(data as JudgeResult);
+    } finally {
+      setJudging(false);
     }
   }
 
@@ -127,6 +148,8 @@ export function DemoClient() {
 
           <GeneratedOutput map={map} />
 
+          <FileFinder map={map} />
+
           <div className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
             <h2 className="text-sm font-semibold">Ask the codebase</h2>
             <p className="text-xs text-zinc-500">
@@ -176,6 +199,33 @@ export function DemoClient() {
                       {f}
                     </code>
                   ))}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={judge}
+                    disabled={judging}
+                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium transition hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  >
+                    {judging ? "Judging…" : "Check groundedness · sigmap judge"}
+                  </button>
+                  {judgment && (
+                    <span className="flex items-center gap-2 text-xs">
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-medium ${
+                          judgment.verdict === "pass"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {judgment.verdict} · {(judgment.score * 100).toFixed(0)}%
+                        grounded
+                      </span>
+                      <span className="text-zinc-500">
+                        verified against the context map
+                      </span>
+                    </span>
+                  )}
                 </div>
               </div>
             )}

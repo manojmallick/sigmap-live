@@ -36,6 +36,8 @@ export interface SigmapRun {
   output: string;
   /** SigMap's own note about coverage/budget (tips printed to stderr). */
   coverageNote: string;
+  /** `sigmap validate` result line (config validity + coverage). */
+  validation: string;
 }
 
 /** Resolve the gen-context.js CLI shipped inside the sigmap package.
@@ -88,6 +90,48 @@ function parseStats(stdout: string) {
     version,
     note,
   };
+}
+
+/**
+ * Score how grounded an AI answer is in the provided context, via the real
+ * `sigmap judge` CLI. Uses the already-generated context markdown — no repo
+ * download. No LLM/API cost.
+ */
+export async function judgeResponse(
+  contextMd: string,
+  response: string
+): Promise<{ score: number; verdict: string; reasons: string[] }> {
+  const work = await mkdtemp(join(tmpdir(), "sigmap-judge-"));
+  try {
+    const ctxPath = join(work, "context.md");
+    const respPath = join(work, "response.txt");
+    await writeFile(ctxPath, contextMd);
+    await writeFile(respPath, response);
+
+    const cli = resolveCliPath();
+    // `sigmap judge` exits non-zero when the verdict is "fail" — that's not an
+    // error for us; it still prints the JSON verdict to stdout. Recover it.
+    let stdout = "";
+    try {
+      ({ stdout } = await execFileAsync(
+        process.execPath,
+        [cli, "judge", "--response", respPath, "--context", ctxPath, "--json"],
+        { env: { ...process.env, HOME: work }, timeout: 30_000, maxBuffer: 4 * 1024 * 1024 }
+      ));
+    } catch (err) {
+      const e = err as { stdout?: string };
+      if (!e?.stdout) throw err;
+      stdout = e.stdout;
+    }
+    const json = JSON.parse(stdout.trim().split("\n").pop() || "{}");
+    return {
+      score: typeof json.score === "number" ? json.score : 0,
+      verdict: json.verdict ?? "unknown",
+      reasons: Array.isArray(json.reasons) ? json.reasons : [],
+    };
+  } finally {
+    await rm(work, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 export async function runSigmap(
@@ -194,6 +238,23 @@ export async function runSigmap(
       // no output file — leave empty
     }
 
+    // `sigmap validate` — config validity + coverage sanity check (reuses dir).
+    let validation = "";
+    try {
+      const { stdout, stderr } = await execFileAsync(
+        process.execPath,
+        [cli, "validate"],
+        { cwd: repoDir, env: { ...process.env, HOME: work }, timeout: 20_000, maxBuffer: 4 * 1024 * 1024 }
+      );
+      const line = `${stdout}\n${stderr}`
+        .split("\n")
+        .map((s) => s.trim())
+        .find((s) => /coverage|valid/i.test(s));
+      validation = (line ?? "").replace(/^\[sigmap\]\s*/, "").replace(/[✓✗]/g, "").trim();
+    } catch {
+      // validate unavailable — leave empty
+    }
+
     return {
       entries,
       filesScanned: stats.filesScanned || entries.length,
@@ -214,6 +275,7 @@ export async function runSigmap(
       version: stats.version,
       output,
       coverageNote: stats.note,
+      validation,
     };
   } finally {
     await rm(work, { recursive: true, force: true }).catch(() => {});

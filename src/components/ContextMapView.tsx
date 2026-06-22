@@ -59,6 +59,14 @@ export function ContextMapView({ map }: { map: ContextMap }) {
               <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-800">
                 {map.stats.symbolsFound} symbols
               </span>
+              {map.validation && (
+                <span
+                  className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-800"
+                  title="sigmap validate"
+                >
+                  ✓ validate: {map.validation}
+                </span>
+              )}
             </div>
             {low && (
               <p className="text-zinc-600 dark:text-zinc-400">

@@ -45,6 +45,8 @@ export interface ContextMap {
   output: string;
   /** Why coverage is what it is (SigMap's tip), shown when coverage is low. */
   coverageNote: string;
+  /** Result of `sigmap validate` (config validity + coverage), if available. */
+  validation: string;
   files: ContextFile[];
   stats: TokenStats;
   /** True if any secret was detected and redacted. */
@@ -91,6 +93,30 @@ export interface AskResult {
   model: string;
   /** Files the answer drew on, if the model cited any. */
   citedFiles: string[];
+}
+
+export interface RankedFile {
+  path: string;
+  score: number;
+  sigCount: number;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface QueryResult {
+  query: string;
+  results: RankedFile[];
+}
+
+export interface JudgeResult {
+  /** 0–1 groundedness score. */
+  score: number;
+  verdict: string;
+  reasons: string[];
+}
+
+export interface AdaptResult {
+  adapter: string;
+  output: string;
 }
 
 export interface ApiError {
