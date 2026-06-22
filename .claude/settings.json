@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:sigmap.io)",
+      "Bash(grep -noiE \"^#{1,3} .*|--[a-z-]+|secretScan|depMap|todos|routing|strategy|per-module|hot-cold|watch|mcp|adapter|benchmark|health|query|judge|ask|cache\" node_modules/sigmap/README.md)",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('sigmap'\\)\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/sigmap/package.json'\\).version\\)\")"
+    ]
+  }
+}

@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import { DemoClient } from "@/components/DemoClient";
 import { CopyCommand } from "@/components/CopyCommand";
+import { FeatureGrid } from "@/components/FeatureGrid";
 
 export const metadata: Metadata = {
   title: "SigMap Demo — verified context for AI coding agents",
   description:
     "Paste a GitHub repo. SigMap extracts verified signatures and ranks the files that matter — feeding AI coding agents the right context with ~93% fewer tokens.",
 };
+
+// SigMap's published benchmark figures (sigmap.io).
+const METRICS = [
+  { value: "97%", label: "fewer tokens" },
+  { value: "75.6%", label: "hit@5 retrieval" },
+  { value: "52.2%", label: "more tasks solved" },
+  { value: "0/21", label: "context overflows (was 16/21)" },
+];
 
 const STEPS = [
   {
@@ -55,6 +64,23 @@ export default function DemoPage() {
             Star on GitHub ↗
           </a>
         </div>
+
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {METRICS.map((m) => (
+            <div
+              key={m.label}
+              className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+            >
+              <dt className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                {m.value}
+              </dt>
+              <dd className="text-xs text-zinc-500">{m.label}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-xs text-zinc-400">
+          SigMap’s published benchmarks · sigmap.io
+        </p>
       </header>
 
       <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -73,6 +99,8 @@ export default function DemoPage() {
       </section>
 
       <DemoClient />
+
+      <FeatureGrid />
 
       <footer className="mt-16 border-t border-zinc-200 pt-6 text-sm text-zinc-500 dark:border-zinc-800">
         Free forever for every individual developer ·{" "}
