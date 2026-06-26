@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DemoClient } from "@/components/DemoClient";
 import { CopyCommand } from "@/components/CopyCommand";
 import { FeatureGrid } from "@/components/FeatureGrid";
@@ -55,6 +56,12 @@ export default function DemoPage() {
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <CopyCommand command="npx sigmap" />
+          <Link
+            href="/benchmark"
+            className="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+          >
+            See the proof — 405 repos, agents 61% faster →
+          </Link>
           <a
             href="https://github.com/manojmallick/sigmap"
             target="_blank"
