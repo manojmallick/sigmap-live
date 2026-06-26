@@ -72,6 +72,25 @@ export default function DemoPage() {
           </a>
         </div>
 
+        <Link
+          href="/benchmark"
+          className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm transition hover:bg-emerald-500/10"
+        >
+          <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            New
+          </span>
+          <span className="text-zinc-700 dark:text-zinc-300">
+            In a head-to-head test, SigMap made the{" "}
+            <strong className="text-emerald-600 dark:text-emerald-400">
+              Devin agent 61% faster
+            </strong>{" "}
+            on real coding tasks — across 405 repos, ~99% fewer tokens.
+          </span>
+          <span className="ml-auto shrink-0 font-medium text-emerald-600 dark:text-emerald-400">
+            See the proof →
+          </span>
+        </Link>
+
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {METRICS.map((m) => (
             <div
@@ -116,6 +135,15 @@ export default function DemoPage() {
           className="text-blue-600 hover:underline dark:text-blue-400"
         >
           sigmap.io
+        </a>{" "}
+        ·{" "}
+        <a
+          href="https://github.com/manojmallick/sigmap-benchmark-suite"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline dark:text-blue-400"
+        >
+          Benchmarks: open &amp; reproducible ↗
         </a>
       </footer>
     </main>

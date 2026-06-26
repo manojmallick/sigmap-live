@@ -4,7 +4,10 @@
       "WebFetch(domain:sigmap.io)",
       "Bash(grep -noiE \"^#{1,3} .*|--[a-z-]+|secretScan|depMap|todos|routing|strategy|per-module|hot-cold|watch|mcp|adapter|benchmark|health|query|judge|ask|cache\" node_modules/sigmap/README.md)",
       "Bash(node -e \"console.log\\(Object.keys\\(require\\('sigmap'\\)\\)\\)\")",
-      "Bash(node -e \"console.log\\(require\\('./node_modules/sigmap/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('./node_modules/sigmap/package.json'\\).version\\)\")",
+      "Bash(node -e \"try{require.resolve\\('next/og'\\);console.log\\('next/og: yes'\\)}catch\\(e\\){console.log\\('next/og: NO'\\)}\")",
+      "Bash(node -e \"console.log\\('next', require\\('next/package.json'\\).version\\)\")",
+      "Bash(git -c 'user.name=Manoj mallick' -c user.email=manoj.mallick079@gmail.com commit -q -m 'feat\\(demo\\): agent-speed hero banner, OG proof cards, big-repo guard *)"
     ]
   }
 }

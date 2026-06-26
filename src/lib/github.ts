@@ -83,10 +83,17 @@ function headers(): HeadersInit {
 }
 
 /** Resolve the default branch when the URL didn't pin one. */
-export async function getDefaultBranch(
+export interface RepoMeta {
+  defaultBranch: string;
+  /** Repository size in kilobytes, as reported by the GitHub API. */
+  sizeKb: number;
+}
+
+/** Fetch repo metadata (default branch + size) in a single API call. */
+export async function getRepoMeta(
   owner: string,
   name: string
-): Promise<string> {
+): Promise<RepoMeta> {
   const res = await fetch(`${GITHUB_API}/repos/${owner}/${name}`, {
     headers: headers(),
     next: { revalidate: 3600 },
@@ -100,8 +107,22 @@ export async function getDefaultBranch(
   if (!res.ok) {
     throw new GitHubError(`GitHub API error (${res.status}).`, res.status);
   }
-  const data = (await res.json()) as { default_branch?: string };
-  return data.default_branch ?? "main";
+  const data = (await res.json()) as {
+    default_branch?: string;
+    size?: number;
+  };
+  return {
+    defaultBranch: data.default_branch ?? "main",
+    sizeKb: data.size ?? 0,
+  };
+}
+
+/** Resolve the default branch when the URL didn't pin one. */
+export async function getDefaultBranch(
+  owner: string,
+  name: string
+): Promise<string> {
+  return (await getRepoMeta(owner, name)).defaultBranch;
 }
 
 /** List source blobs in the repo tree for the given branch. */

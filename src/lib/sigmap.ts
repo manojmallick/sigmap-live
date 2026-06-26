@@ -1,6 +1,6 @@
 import { rank } from "sigmap";
 import {
-  getDefaultBranch,
+  getRepoMeta,
   GitHubError,
   parseRepoUrl,
 } from "@/lib/github";
@@ -54,6 +54,9 @@ export const DEFAULT_CONFIG: RepoConfigInput = {
   ],
 };
 
+/** Largest repo (git size, KB) the demo will attempt on a cold run. */
+const MAX_REPO_KB = 300_000;
+
 export async function analyzeRepo(
   rawUrl: string,
   query?: string,
@@ -67,7 +70,20 @@ export async function analyzeRepo(
   const cfgKey = JSON.stringify(cfg);
 
   return withCache(cacheKey("analyze", owner, name, pinnedBranch ?? "", intent, cfgKey), async () => {
-    const branch = pinnedBranch ?? (await getDefaultBranch(owner, name));
+    const meta = await getRepoMeta(owner, name);
+    // Guard the demo's 60s budget: the truly giant repos won't finish a fresh
+    // (uncached) run in time, so fail fast with a clear message instead of a
+    // platform timeout. ~300 MB git size is well above any normal demo repo.
+    if (meta.sizeKb > MAX_REPO_KB) {
+      const mb = Math.round(meta.sizeKb / 1024);
+      throw new GitHubError(
+        `This repository is very large (~${mb} MB) and may exceed the demo's ` +
+          `time limit. Try a smaller repo, or run \`npx sigmap\` locally — it ` +
+          `handles repos of any size.`,
+        413
+      );
+    }
+    const branch = pinnedBranch ?? meta.defaultBranch;
 
     // Generation is the expensive step and is query-independent — cache it
     // per repo+branch+config so different queries reuse the same SigMap run.
