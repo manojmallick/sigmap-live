@@ -5,20 +5,18 @@ import {
   SCALE,
   BY_LANGUAGE,
   TASKS,
-  DEVIN,
-  DEVIN_SUMMARY,
+  AGENT,
   CAVEATS,
   METHODOLOGY_URL,
 } from "@/lib/benchmark-data";
 
 export const metadata: Metadata = {
-  title: "SigMap Benchmark — the proof (405 repos · 96× cheaper · agents 61% faster)",
+  title: "SigMap Benchmark — the proof (405 repos · ~99% fewer tokens · 96× cheaper)",
   description:
-    "Real, reproducible numbers: SigMap cuts AI coding context by ~99% across 405 repositories, makes task context 96× cheaper, and makes the Devin agent 61% faster on real coding tasks.",
+    "Real, reproducible numbers: SigMap cuts AI coding context by ~99% across 405 repositories, makes task context 96× cheaper, and lifts retrieval hit@5 to 82.4% with a BM25 re-ranker.",
 };
 
 const nf = new Intl.NumberFormat("en-US");
-const savedPct = (a: number, b: number) => Math.round(((a - b) / a) * 100);
 
 export default function BenchmarkPage() {
   return (
@@ -38,11 +36,11 @@ export default function BenchmarkPage() {
           </span>
         </h1>
         <p className="max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
-          Three independent experiments, reproduced locally on SigMap v7.30:
-          whole-repo extraction across 405 repositories, 51 real coding tasks
-          answered with vs without SigMap, and the Devin agent run head-to-head.
-          Every figure below is a real measurement — the full method and raw data
-          are open.
+          Reproduced locally on SigMap v7.30: whole-repo extraction across 405
+          repositories, 51 real coding tasks answered with vs without SigMap, and
+          a BM25 re-ranker that lifts retrieval. We also A/B-tested a real agent
+          (Devin) — and report that result honestly below, win or not. Every
+          figure is a real measurement; the full method and raw data are open.
         </p>
 
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -157,78 +155,44 @@ export default function BenchmarkPage() {
         </div>
       </section>
 
-      {/* Experiment 3 — Devin */}
+      {/* Experiment 3 — Devin (honest, open result) */}
       <section className="mb-14 space-y-4">
         <h2 className="text-lg font-bold tracking-tight">
-          3 · Does it make a real agent faster? — Devin, head-to-head
+          3 · Does it make a real agent faster? — honest answer: not yet proven
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          The same task given to Devin twice: <strong>A</strong> = task only
-          (Devin explores the repo itself), <strong>B</strong> = SigMap&apos;s
-          ranked context injected first. Wall-clock minutes, lower is better.
+          We A/B-tested a real autonomous agent (Devin) on the same tasks —{" "}
+          <strong>A</strong> = task only, <strong>B</strong> = SigMap context
+          injected first — at <strong>{AGENT.reps} reps</strong> per task. The
+          deterministic token and cost savings above are real; the wall-clock
+          speedup is <strong>not</strong>.
         </p>
-        <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 dark:bg-zinc-900">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium">Task · repo</th>
-                <th className="px-3 py-2 text-right font-medium">No SigMap</th>
-                <th className="px-3 py-2 text-right font-medium">SigMap</th>
-                <th className="px-3 py-2 text-right font-medium">Saved</th>
-              </tr>
-            </thead>
-            <tbody>
-              {DEVIN.map((d) => {
-                const saved = savedPct(d.aMin, d.bMin);
-                return (
-                  <tr
-                    key={d.repo}
-                    className="border-t border-zinc-100 dark:border-zinc-800"
-                  >
-                    <td className="px-3 py-2">
-                      <span className="font-medium">{d.repo}</span>
-                      <span className="text-zinc-400"> · {d.task}</span>
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-zinc-500">
-                      {d.aMin.toFixed(1)}m
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums font-medium">
-                      {d.bMin.toFixed(1)}m
-                    </td>
-                    <td
-                      className={`px-3 py-2 text-right tabular-nums font-medium ${
-                        saved > 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-zinc-400"
-                      }`}
-                    >
-                      {saved > 0 ? "+" : ""}
-                      {saved}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-zinc-200 bg-zinc-50 font-semibold dark:border-zinc-700 dark:bg-zinc-900">
-                <td className="px-3 py-2">Average</td>
-                <td className="px-3 py-2 text-right tabular-nums text-zinc-500">
-                  {DEVIN_SUMMARY.avgABefore.toFixed(1)}m
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {DEVIN_SUMMARY.avgBAfter.toFixed(1)}m
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-                  ~{DEVIN_SUMMARY.avgSavedPct}%
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
+          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+            <div>
+              <div className="text-2xl font-bold tabular-nums">
+                {AGENT.completedAMin.toFixed(1)}m
+              </div>
+              <div className="text-xs text-zinc-500">no SigMap (completed runs)</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold tabular-nums">
+                {AGENT.completedBMin.toFixed(1)}m
+              </div>
+              <div className="text-xs text-zinc-500">SigMap (completed runs)</div>
+            </div>
+            <div className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              → {AGENT.verdict}
+            </div>
+          </div>
         </div>
         <p className="text-xs text-zinc-500">
-          The biggest wins are in the largest repos (akka, vue-core) — exactly
-          where an agent would otherwise burn time exploring. Every run produced
-          a working diff; no quality regression.
+          A single early run looked like a large win, but it didn&apos;t hold up:
+          across {AGENT.reps} reps the agent&apos;s variance is high and some
+          sessions exceeded our 30-minute measurement cap. We&apos;d rather show
+          you this than a cherry-picked number. SigMap&apos;s value here is proven
+          in tokens and cost; the agent-speed question stays open until it
+          replicates cleanly.
         </p>
       </section>
 

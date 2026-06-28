@@ -60,7 +60,7 @@ export default function DemoPage() {
             href="/benchmark"
             className="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
           >
-            See the proof — 405 repos, agents 61% faster →
+            See the proof — 405 repos, 96× cheaper context →
           </Link>
           <a
             href="https://github.com/manojmallick/sigmap"
@@ -80,11 +80,11 @@ export default function DemoPage() {
             New
           </span>
           <span className="text-zinc-700 dark:text-zinc-300">
-            In a head-to-head test, SigMap made the{" "}
+            Measured across 405 repos:{" "}
             <strong className="text-emerald-600 dark:text-emerald-400">
-              Devin agent 61% faster
+              ~99% fewer tokens, 96× cheaper context
             </strong>{" "}
-            on real coding tasks — across 405 repos, ~99% fewer tokens.
+            — reproducible numbers, with the honest agent results too.
           </span>
           <span className="ml-auto shrink-0 font-medium text-emerald-600 dark:text-emerald-400">
             See the proof →

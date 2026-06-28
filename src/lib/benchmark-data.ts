@@ -8,11 +8,11 @@
 export const METHODOLOGY_URL =
   "https://github.com/manojmallick/sigmap-benchmark-suite";
 
-/** Headline numbers across the three experiments. */
+/** Headline numbers — deterministic, reproducible measurements. */
 export const HEADLINE = [
   { value: "~99%", label: "fewer tokens", sub: "98.7% overall, 405 repos" },
   { value: "96×", label: "cheaper context", sub: "51 real coding tasks" },
-  { value: "61%", label: "faster AI agent", sub: "Devin A/B, 4 of 5 tasks" },
+  { value: "82.4%", label: "retrieval hit@5", sub: "BM25 re-ranker, +7pts" },
 ] as const;
 
 /** Experiment 1 — whole-repo signature extraction at scale. */
@@ -60,31 +60,26 @@ export const TASKS = {
   retrievalPct: 62.7, // share of tasks with the right file in top-5
 } as const;
 
-/** Experiment 3 — same task through Devin twice (A = no SigMap, B = SigMap). */
-export const DEVIN: {
-  task: string;
-  repo: string;
-  size: string;
-  aMin: number;
-  bMin: number;
-}[] = [
-  { task: "Cluster reachability API", repo: "akka", size: "huge", aMin: 12.5, bMin: 3.2 },
-  { task: "Emit-not-declared warning", repo: "vue-core", size: "large", aMin: 30.6, bMin: 8.9 },
-  { task: "Redact logging header", repo: "okhttp", size: "large", aMin: 7.0, bMin: 3.8 },
-  { task: "Cache-Control decorator", repo: "flask", size: "small", aMin: 4.5, bMin: 3.9 },
-  { task: "AST expression range", repo: "rust-analyzer", size: "huge", aMin: 2.1, bMin: 2.4 },
-];
-
-export const DEVIN_SUMMARY = {
-  avgABefore: 11.3,
-  avgBAfter: 4.5,
-  avgSavedPct: 61,
+/**
+ * Experiment 3 — does the token saving make a real agent (Devin) faster?
+ * Honest answer after a 3-rep A/B (A = no SigMap, B = SigMap context): no robust
+ * wall-clock difference. Completed sessions averaged ~the same; per-session
+ * variance is high and some runs exceeded our 30-min measurement cap. We do NOT
+ * claim an agent-speed number until it replicates cleanly. (An early single run
+ * looked like a big win, but that was n=1 noise.)
+ */
+export const AGENT = {
+  reps: 3,
+  tasks: 5,
+  completedAMin: 8.4, // mean wall-clock of completed control sessions
+  completedBMin: 8.0, // mean wall-clock of completed SigMap sessions
+  verdict: "no robust speed difference (within noise)",
 } as const;
 
 /** Honest caveats — shown on the page so the numbers are trustworthy. */
 export const CAVEATS = [
   "84 of 405 repos use languages SigMap doesn't yet parse (Clojure/Lua/C/C++/Haskell) — excluded from the headline, not hidden.",
-  "Retrieval precision (62.7% hit@5) is the ceiling: a lexical ranker sometimes surfaces a neighbour file, not the exact target.",
-  "Devin numbers are a single run per task (the agent is stochastic) and exclude ACUs, which Devin only reports on its dashboard.",
-  "Token & cost figures are model-reported and deterministic; agent wall-clock is a softer signal that grows with repo size.",
+  "Retrieval precision is the ceiling: even the BM25 re-ranker (82.4% hit@5) sometimes surfaces a neighbour file, not the exact target.",
+  "We did NOT find a reproducible agent wall-clock speedup: a 3-rep Devin A/B came out within noise (8.4 vs 8.0 min on completed runs), with high variance and some sessions exceeding our 30-min cap. The token/cost savings below are deterministic; the agent-speed question is still open.",
+  "Devin's ACUs (its billing unit) aren't exposed by the API — only on its dashboard — so cost-per-task on the agent side is not yet measured.",
 ];

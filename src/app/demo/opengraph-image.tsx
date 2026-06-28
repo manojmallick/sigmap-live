@@ -40,7 +40,7 @@ export default function Image() {
         </div>
 
         <div style={{ display: "flex", fontSize: 26, color: "#a1a1aa" }}>
-          405 repos · agents 61% faster · sigmap.io
+          405 repos · 96× cheaper context · sigmap.io
         </div>
       </div>
     ),

@@ -3,7 +3,7 @@ import { HEADLINE } from "@/lib/benchmark-data";
 
 export const runtime = "nodejs";
 export const alt =
-  "SigMap benchmark — ~99% fewer tokens, 96× cheaper, agents 61% faster";
+  "SigMap benchmark — ~99% fewer tokens, 96× cheaper, 82.4% retrieval hit@5";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
