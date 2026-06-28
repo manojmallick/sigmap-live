@@ -158,41 +158,46 @@ export default function BenchmarkPage() {
       {/* Experiment 3 — Devin (honest, open result) */}
       <section className="mb-14 space-y-4">
         <h2 className="text-lg font-bold tracking-tight">
-          3 · Does it make a real agent faster? — honest answer: not yet proven
+          3 · Does it also make a real agent faster? — we tested it honestly
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          We A/B-tested a real autonomous agent (Devin) on the same tasks —{" "}
-          <strong>A</strong> = task only, <strong>B</strong> = SigMap context
-          injected first — at <strong>{AGENT.reps} reps</strong> per task. The
-          deterministic token and cost savings above are real; the wall-clock
-          speedup is <strong>not</strong>.
+          The savings above are about <strong>context size and cost</strong>, and
+          they&apos;re deterministic. A separate question is whether smaller
+          context also makes an autonomous agent finish <em>faster</em>. We
+          A/B-tested one (Devin) on these tasks — <strong>A</strong> = task only,{" "}
+          <strong>B</strong> = SigMap context first — at{" "}
+          <strong>{AGENT.reps} reps</strong> each. The honest result:{" "}
+          <strong>too close to call.</strong>
         </p>
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
-          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
             <div>
               <div className="text-2xl font-bold tabular-nums">
                 {AGENT.completedAMin.toFixed(1)}m
               </div>
-              <div className="text-xs text-zinc-500">no SigMap (completed runs)</div>
+              <div className="text-xs text-zinc-500">no SigMap (avg, completed)</div>
             </div>
             <div>
               <div className="text-2xl font-bold tabular-nums">
                 {AGENT.completedBMin.toFixed(1)}m
               </div>
-              <div className="text-xs text-zinc-500">SigMap (completed runs)</div>
+              <div className="text-xs text-zinc-500">with SigMap (avg, completed)</div>
             </div>
-            <div className="text-sm font-medium text-amber-700 dark:text-amber-400">
-              → {AGENT.verdict}
+            <div className="rounded-md bg-amber-500/15 px-3 py-1 text-sm font-medium text-amber-700 dark:text-amber-400">
+              ≈ Tie — within measurement noise
             </div>
           </div>
         </div>
         <p className="text-xs text-zinc-500">
-          A single early run looked like a large win, but it didn&apos;t hold up:
-          across {AGENT.reps} reps the agent&apos;s variance is high and some
-          sessions exceeded our 30-minute measurement cap. We&apos;d rather show
-          you this than a cherry-picked number. SigMap&apos;s value here is proven
-          in tokens and cost; the agent-speed question stays open until it
-          replicates cleanly.
+          <strong>What this means:</strong> this is <em>not</em> evidence SigMap
+          slows an agent down — the two are statistically even. The agent&apos;s
+          run-to-run variance is simply large (some runs exceeded our 30-min
+          measurement cap), so we can&apos;t yet claim a speedup either way. An
+          early single run looked like a big win (~61%) but didn&apos;t hold up
+          across {AGENT.reps} reps — so we&apos;re showing you the real result,
+          not that number. <strong>SigMap&apos;s proven value is the ~99% smaller,
+          96× cheaper, better-retrieved context above</strong> — what your agent
+          does with that head start is the open question we&apos;re still measuring.
         </p>
       </section>
 
