@@ -35,11 +35,40 @@ export interface LimitResult {
   enforced: boolean;
 }
 
-/** Best-effort client IP from Vercel's forwarding headers. */
+/**
+ * Client IP for rate-limit keys — spoof-resistant.
+ *
+ * On Vercel, `x-real-ip` is set by the platform to the real connecting IP and
+ * is NOT overridable by the client. The LEFT-most `x-forwarded-for` entry is
+ * client-supplied, so a user can send `X-Forwarded-For: <random>` to mint a
+ * fresh identity every request and dodge per-IP limits — never key off it.
+ * Prefer `x-real-ip`; only fall back to the LAST forwarded hop off-Vercel.
+ */
 export function getClientIp(req: Request): string {
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "0.0.0.0";
+  if (xff) {
+    const hops = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    return hops[hops.length - 1] || "0.0.0.0";
+  }
+  return "0.0.0.0";
+}
+
+/** Hard daily ceiling on paid LLM calls across ALL users (distributed-abuse cap). */
+export const GLOBAL_ASK_LIMIT = 1000;
+
+/**
+ * Circuit breaker: caps total Ask (Gemini) calls per day across every visitor.
+ * Per-IP limits can't stop a botnet cycling IPs; this bounds the worst-case
+ * spend. Increments a daily counter and returns false once the ceiling is hit.
+ */
+export async function checkGlobalAskBudget(): Promise<boolean> {
+  if (!redis) return true;
+  const key = `rl:ask:global:${utcDay()}`;
+  const n = await redis.incr(key);
+  if (n === 1) await redis.expire(key, 60 * 60 * 48);
+  return n <= GLOBAL_ASK_LIMIT;
 }
 
 function utcDay(): string {
