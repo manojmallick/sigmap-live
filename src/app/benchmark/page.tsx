@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  HEADLINE,
-  OFFICIAL,
+  fetchOfficial,
+  headlineFrom,
+  caveatsFrom,
   OFFICIAL_URL,
   SCALE,
   BY_LANGUAGE,
   TASKS,
   AGENT,
-  CAVEATS,
   METHODOLOGY_URL,
 } from "@/lib/benchmark-data";
 
@@ -18,9 +18,15 @@ export const metadata: Metadata = {
     "The official SigMap benchmark: 87.8% retrieval hit@5 (vs 13.6% baseline), 97% token reduction, 67.8% task success across 21 repos / 90 tasks — plus an independent 405-repo reproduction. Reproducible, no LLM API.",
 };
 
+// Re-pull the official numbers from the core repo about once a day (ISR).
+export const revalidate = 86_400;
+
 const nf = new Intl.NumberFormat("en-US");
 
-export default function BenchmarkPage() {
+export default async function BenchmarkPage() {
+  const official = await fetchOfficial();
+  const headline = headlineFrom(official);
+  const caveats = caveatsFrom(official);
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
       {/* Hero */}
@@ -46,7 +52,7 @@ export default function BenchmarkPage() {
         </p>
 
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {HEADLINE.map((m) => (
+          {headline.map((m) => (
             <div
               key={m.label}
               className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
@@ -72,12 +78,12 @@ export default function BenchmarkPage() {
       {/* Official benchmark — the canonical sigmap.io numbers */}
       <section className="mb-14 space-y-4">
         <h2 className="text-lg font-bold tracking-tight">
-          1 · The official SigMap benchmark ({OFFICIAL.reposToken} repos,{" "}
-          {OFFICIAL.tasks} tasks)
+          1 · The official SigMap benchmark ({official.reposToken} repos,{" "}
+          {official.tasks} tasks)
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           These are the canonical numbers from the SigMap core repo
-          (<code>benchmarks/latest.json</code>, {OFFICIAL.version}) — the same
+          (<code>benchmarks/latest.json</code>, {official.version}) — the same
           figures published on{" "}
           <a
             href={OFFICIAL_URL}
@@ -91,10 +97,10 @@ export default function BenchmarkPage() {
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { v: `${OFFICIAL.hitAt5Pct}%`, l: `hit@5 (vs ${OFFICIAL.baselineHitAt5Pct}% baseline)` },
-            { v: `${OFFICIAL.retrievalLiftX}×`, l: "retrieval lift" },
-            { v: `${OFFICIAL.tokenReductionPct}%`, l: "token reduction" },
-            { v: `${OFFICIAL.taskSuccessPct}%`, l: `task success (vs ${OFFICIAL.baselineTaskSuccessPct}%)` },
+            { v: `${official.hitAt5Pct}%`, l: `hit@5 (vs ${official.baselineHitAt5Pct}% baseline)` },
+            { v: `${official.retrievalLiftX}×`, l: "retrieval lift" },
+            { v: `${official.tokenReductionPct}%`, l: "token reduction" },
+            { v: `${official.taskSuccessPct}%`, l: `task success (vs ${official.baselineTaskSuccessPct}%)` },
           ].map((s) => (
             <div
               key={s.l}
@@ -108,8 +114,8 @@ export default function BenchmarkPage() {
           ))}
         </div>
         <p className="text-xs text-zinc-500">
-          Also: {OFFICIAL.promptReductionPct}% fewer prompts per task (
-          {OFFICIAL.baselinePromptsPerTask} → {OFFICIAL.promptsPerTask}). No LLM
+          Also: {official.promptReductionPct}% fewer prompts per task (
+          {official.baselinePromptsPerTask} → {official.promptsPerTask}). No LLM
           API in the measurement — fully reproducible.
         </p>
       </section>
@@ -125,7 +131,7 @@ export default function BenchmarkPage() {
           → {nf.format(SCALE.tokensAfter)} tokens, a{" "}
           <strong>{SCALE.overallReductionPct}%</strong> overall reduction
           ({SCALE.avgReductionPct}% average per repo). That&apos;s consistent with
-          the official {OFFICIAL.tokenReductionPct}% at ~19× the scale.{" "}
+          the official {official.tokenReductionPct}% at ~19× the scale.{" "}
           {SCALE.reposExcluded} repos use languages SigMap doesn&apos;t yet parse
           and are excluded.
         </p>
@@ -257,7 +263,7 @@ export default function BenchmarkPage() {
           What these numbers don&apos;t say
         </h2>
         <ul className="space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
-          {CAVEATS.map((c) => (
+          {caveats.map((c) => (
             <li key={c} className="flex gap-2">
               <span className="text-zinc-400">•</span>
               <span>{c}</span>

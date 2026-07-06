@@ -1,21 +1,36 @@
 /**
  * Benchmark results, baked as static data (no API cost to render).
  *
- * The OFFICIAL numbers mirror the SigMap source of truth — `benchmarks/latest.json`
- * in the core repo (synced to sigmap.io). The SCALE / TASKS / AGENT blocks are our
- * own independent, larger reproductions, kept consistent with the official figures.
+ * The OFFICIAL numbers are pulled at build/ISR time from the SigMap core repo's
+ * `benchmarks/latest.json` (the same source sigmap.io renders from), so the demo
+ * stays in sync automatically. The hardcoded OFFICIAL below is the fallback if
+ * the fetch fails. SCALE / TASKS / AGENT are our own independent reproductions.
  */
 
 export const METHODOLOGY_URL =
   "https://github.com/manojmallick/sigmap-benchmark-suite";
 export const OFFICIAL_URL = "https://sigmap.io/guide/benchmark.html";
+const RAW_LATEST_URL =
+  "https://raw.githubusercontent.com/manojmallick/sigmap/main/benchmarks/latest.json";
 
-/**
- * Official SigMap benchmark — the canonical numbers from the core repo's
- * `benchmarks/latest.json` (id sigmap-v8.9-main), the same figures shown on
- * sigmap.io. Generated from the benchmark suite, never hand-typed there.
- */
-export const OFFICIAL = {
+export interface Official {
+  version: string;
+  reposToken: number;
+  reposRetrieval: number;
+  tasks: number;
+  hitAt5Pct: number;
+  baselineHitAt5Pct: number;
+  retrievalLiftX: number;
+  tokenReductionPct: number;
+  taskSuccessPct: number;
+  baselineTaskSuccessPct: number;
+  promptsPerTask: number;
+  baselinePromptsPerTask: number;
+  promptReductionPct: number;
+}
+
+/** Fallback / default — mirrors sigmap-v8.9-main; overridden by the live fetch. */
+export const OFFICIAL: Official = {
   version: "v8.9",
   reposToken: 21,
   reposRetrieval: 18,
@@ -29,19 +44,78 @@ export const OFFICIAL = {
   promptsPerTask: 1.44,
   baselinePromptsPerTask: 2.84,
   promptReductionPct: 49.2,
-} as const;
+};
 
-/** Headline numbers — the official SigMap benchmark (matches sigmap.io). */
-export const HEADLINE = [
-  { value: "97%", label: "fewer tokens", sub: "official · 21 repos" },
-  { value: "87.8%", label: "retrieval hit@5", sub: "vs 13.6% baseline · 6.5× lift" },
-  { value: "67.8%", label: "task success", sub: "vs 10% without context" },
-] as const;
+const round1 = (n: number) => Math.round(n * 10) / 10;
+/** Accept a fraction (0.878) or an already-percent value (97). */
+const asPct = (x: unknown, fallback: number) =>
+  typeof x === "number" ? round1(x <= 1 ? x * 100 : x) : fallback;
+const num = (x: unknown, fallback: number) =>
+  typeof x === "number" ? x : fallback;
+
+interface LatestJson {
+  benchmark_id?: string;
+  repos_token?: number;
+  repos_retrieval?: number;
+  tasks?: number;
+  metrics?: {
+    hit_at_5?: number;
+    baseline_hit_at_5?: number;
+    retrieval_lift?: number;
+    overall_token_reduction_pct?: number;
+    task_success_proxy_pct?: number;
+    prompts_per_task?: number;
+    baseline_prompts_per_task?: number;
+    prompt_reduction_pct?: number;
+  };
+}
 
 /**
- * Independent extended reproduction — we ran whole-repo extraction 19× larger
- * than the official set (405 repos) to stress-test the token-reduction claim.
- * 98.7% overall is consistent with the official 97%.
+ * Fetch the official numbers from the core repo (ISR-cached ~daily). Falls back
+ * to the hardcoded OFFICIAL on any error, so the page never breaks.
+ */
+export async function fetchOfficial(): Promise<Official> {
+  try {
+    const res = await fetch(RAW_LATEST_URL, { next: { revalidate: 86_400 } });
+    if (!res.ok) return OFFICIAL;
+    const j = (await res.json()) as LatestJson;
+    const m = j.metrics ?? {};
+    const ver = String(j.benchmark_id ?? "").match(/v[\d.]+/)?.[0];
+    return {
+      version: ver ?? OFFICIAL.version,
+      reposToken: num(j.repos_token, OFFICIAL.reposToken),
+      reposRetrieval: num(j.repos_retrieval, OFFICIAL.reposRetrieval),
+      tasks: num(j.tasks, OFFICIAL.tasks),
+      hitAt5Pct: asPct(m.hit_at_5, OFFICIAL.hitAt5Pct),
+      baselineHitAt5Pct: asPct(m.baseline_hit_at_5, OFFICIAL.baselineHitAt5Pct),
+      retrievalLiftX: num(m.retrieval_lift, OFFICIAL.retrievalLiftX),
+      tokenReductionPct: asPct(m.overall_token_reduction_pct, OFFICIAL.tokenReductionPct),
+      taskSuccessPct: asPct(m.task_success_proxy_pct, OFFICIAL.taskSuccessPct),
+      baselineTaskSuccessPct: OFFICIAL.baselineTaskSuccessPct,
+      promptsPerTask: num(m.prompts_per_task, OFFICIAL.promptsPerTask),
+      baselinePromptsPerTask: num(m.baseline_prompts_per_task, OFFICIAL.baselinePromptsPerTask),
+      promptReductionPct: asPct(m.prompt_reduction_pct, OFFICIAL.promptReductionPct),
+    };
+  } catch {
+    return OFFICIAL;
+  }
+}
+
+/** Headline cards from the official numbers (matches sigmap.io). */
+export function headlineFrom(o: Official) {
+  return [
+    { value: `${o.tokenReductionPct}%`, label: "fewer tokens", sub: `official · ${o.reposToken} repos` },
+    { value: `${o.hitAt5Pct}%`, label: "retrieval hit@5", sub: `vs ${o.baselineHitAt5Pct}% baseline · ${o.retrievalLiftX}× lift` },
+    { value: `${o.taskSuccessPct}%`, label: "task success", sub: `vs ${o.baselineTaskSuccessPct}% without context` },
+  ];
+}
+
+/** Static headline from the fallback — used by the OG card (build-time only). */
+export const HEADLINE = headlineFrom(OFFICIAL);
+
+/**
+ * Independent extended reproduction — whole-repo extraction 19× larger than the
+ * official set (405 repos). 98.7% overall is consistent with the official 97%.
  */
 export const SCALE = {
   reposProcessed: 405,
@@ -84,13 +158,12 @@ export const TASKS = {
   tokensAfter: 45_866,
   costBefore: 1.7261,
   costAfter: 0.0179,
-  retrievalPct: 62.7, // right file in top-5 on this broad set (harder than the curated 18)
+  retrievalPct: 62.7,
 } as const;
 
 /**
  * Agent A/B — does the token saving make a real agent (Devin) faster? Honest
- * answer after a 3-rep A/B: no robust wall-clock difference (within noise). An
- * early single run looked like a big win, but that was n=1 noise.
+ * answer after a 3-rep A/B: no robust wall-clock difference (within noise).
  */
 export const AGENT = {
   reps: 3,
@@ -101,9 +174,11 @@ export const AGENT = {
 } as const;
 
 /** Honest caveats — shown on the page so the numbers are trustworthy. */
-export const CAVEATS = [
-  `The headline figures are the official SigMap benchmark (${OFFICIAL.version}, ${OFFICIAL.reposToken} repos, ${OFFICIAL.tasks} tasks) — synced from the core repo, same as sigmap.io.`,
-  "The 405-repo run is our own independent stress test; 84 use languages SigMap doesn't yet parse (Clojure/Lua/C/C++/Haskell) and are excluded, not hidden.",
-  "Retrieval on the broad 405-repo set is lower than the official 87.8% — a wider, messier corpus is harder than the curated benchmark set.",
-  "We did NOT find a reproducible agent wall-clock speedup: a 3-rep Devin A/B came out within noise (8.4 vs 8.0 min). Token/cost savings are deterministic; agent-speed is still open.",
-];
+export function caveatsFrom(o: Official): string[] {
+  return [
+    `The headline figures are the official SigMap benchmark (${o.version}, ${o.reposToken} repos, ${o.tasks} tasks) — pulled live from the core repo, same as sigmap.io.`,
+    "The 405-repo run is our own independent stress test; 84 use languages SigMap doesn't yet parse (Clojure/Lua/C/C++/Haskell) and are excluded, not hidden.",
+    `Retrieval on the broad 405-repo set is lower than the official ${o.hitAt5Pct}% — a wider, messier corpus is harder than the curated benchmark set.`,
+    "We did NOT find a reproducible agent wall-clock speedup: a 3-rep Devin A/B came out within noise (8.4 vs 8.0 min). Token/cost savings are deterministic; agent-speed is still open.",
+  ];
+}

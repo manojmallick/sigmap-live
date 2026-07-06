@@ -4,6 +4,7 @@ import { DemoClient } from "@/components/DemoClient";
 import { CopyCommand } from "@/components/CopyCommand";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { LiveStats } from "@/components/LiveStats";
+import { fetchOfficial } from "@/lib/benchmark-data";
 
 export const metadata: Metadata = {
   title: "SigMap Demo — verified context for AI coding agents",
@@ -11,13 +12,8 @@ export const metadata: Metadata = {
     "Paste a GitHub repo. SigMap extracts verified signatures and ranks the files that matter — feeding AI coding agents the right context with up to ~97% fewer tokens.",
 };
 
-// SigMap's published benchmark figures (sigmap.io).
-const METRICS = [
-  { value: "97%", label: "fewer tokens" },
-  { value: "87.8%", label: "hit@5 retrieval" },
-  { value: "67.8%", label: "task success" },
-  { value: "6.5×", label: "retrieval lift" },
-];
+// Re-pull the official numbers from the core repo about once a day (ISR).
+export const revalidate = 86_400;
 
 const STEPS = [
   {
@@ -37,7 +33,14 @@ const STEPS = [
   },
 ];
 
-export default function DemoPage() {
+export default async function DemoPage() {
+  const o = await fetchOfficial();
+  const METRICS = [
+    { value: `${o.tokenReductionPct}%`, label: "fewer tokens" },
+    { value: `${o.hitAt5Pct}%`, label: "hit@5 retrieval" },
+    { value: `${o.taskSuccessPct}%`, label: "task success" },
+    { value: `${o.retrievalLiftX}×`, label: "retrieval lift" },
+  ];
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
       <header className="mb-12 space-y-5">
@@ -109,7 +112,8 @@ export default function DemoPage() {
           ))}
         </dl>
         <p className="text-xs text-zinc-400">
-          SigMap v8.9 benchmark · 21 repos · 90 tasks · sigmap.io
+          SigMap {o.version} benchmark · {o.reposToken} repos · {o.tasks} tasks ·
+          sigmap.io
         </p>
       </header>
 
