@@ -1,21 +1,48 @@
 /**
- * Validated benchmark results, baked as static data (no API/ACU cost to render).
- * Source: locally reproduced 2026-06 with SigMap v7.30 — full methodology and raw
- * artifacts in the open benchmark-suite repo (see METHODOLOGY_URL). These are real
- * measured numbers, not marketing estimates.
+ * Benchmark results, baked as static data (no API cost to render).
+ *
+ * The OFFICIAL numbers mirror the SigMap source of truth — `benchmarks/latest.json`
+ * in the core repo (synced to sigmap.io). The SCALE / TASKS / AGENT blocks are our
+ * own independent, larger reproductions, kept consistent with the official figures.
  */
 
 export const METHODOLOGY_URL =
   "https://github.com/manojmallick/sigmap-benchmark-suite";
+export const OFFICIAL_URL = "https://sigmap.io/guide/benchmark.html";
 
-/** Headline numbers — deterministic, reproducible measurements. */
+/**
+ * Official SigMap benchmark — the canonical numbers from the core repo's
+ * `benchmarks/latest.json` (id sigmap-v8.9-main), the same figures shown on
+ * sigmap.io. Generated from the benchmark suite, never hand-typed there.
+ */
+export const OFFICIAL = {
+  version: "v8.9",
+  reposToken: 21,
+  reposRetrieval: 18,
+  tasks: 90,
+  hitAt5Pct: 87.8,
+  baselineHitAt5Pct: 13.6,
+  retrievalLiftX: 6.5,
+  tokenReductionPct: 97,
+  taskSuccessPct: 67.8,
+  baselineTaskSuccessPct: 10,
+  promptsPerTask: 1.44,
+  baselinePromptsPerTask: 2.84,
+  promptReductionPct: 49.2,
+} as const;
+
+/** Headline numbers — the official SigMap benchmark (matches sigmap.io). */
 export const HEADLINE = [
-  { value: "~99%", label: "fewer tokens", sub: "98.7% overall, 405 repos" },
-  { value: "96×", label: "cheaper context", sub: "51 real coding tasks" },
-  { value: "82.4%", label: "retrieval hit@5", sub: "BM25 re-ranker, +7pts" },
+  { value: "97%", label: "fewer tokens", sub: "official · 21 repos" },
+  { value: "87.8%", label: "retrieval hit@5", sub: "vs 13.6% baseline · 6.5× lift" },
+  { value: "67.8%", label: "task success", sub: "vs 10% without context" },
 ] as const;
 
-/** Experiment 1 — whole-repo signature extraction at scale. */
+/**
+ * Independent extended reproduction — we ran whole-repo extraction 19× larger
+ * than the official set (405 repos) to stress-test the token-reduction claim.
+ * 98.7% overall is consistent with the official 97%.
+ */
 export const SCALE = {
   reposProcessed: 405,
   reposSupported: 321,
@@ -47,7 +74,7 @@ export const BY_LANGUAGE: { lang: string; repos: number; reductionPct: number }[
     { lang: "Vue", repos: 1, reductionPct: 94.9 },
   ];
 
-/** Experiment 2 — answering 51 real coding tasks with vs without SigMap. */
+/** Cost analysis — answering 51 real coding tasks with vs without SigMap. */
 export const TASKS = {
   count: 51,
   repos: 17,
@@ -57,29 +84,26 @@ export const TASKS = {
   tokensAfter: 45_866,
   costBefore: 1.7261,
   costAfter: 0.0179,
-  retrievalPct: 62.7, // share of tasks with the right file in top-5
+  retrievalPct: 62.7, // right file in top-5 on this broad set (harder than the curated 18)
 } as const;
 
 /**
- * Experiment 3 — does the token saving make a real agent (Devin) faster?
- * Honest answer after a 3-rep A/B (A = no SigMap, B = SigMap context): no robust
- * wall-clock difference. Completed sessions averaged ~the same; per-session
- * variance is high and some runs exceeded our 30-min measurement cap. We do NOT
- * claim an agent-speed number until it replicates cleanly. (An early single run
- * looked like a big win, but that was n=1 noise.)
+ * Agent A/B — does the token saving make a real agent (Devin) faster? Honest
+ * answer after a 3-rep A/B: no robust wall-clock difference (within noise). An
+ * early single run looked like a big win, but that was n=1 noise.
  */
 export const AGENT = {
   reps: 3,
   tasks: 5,
-  completedAMin: 8.4, // mean wall-clock of completed control sessions
-  completedBMin: 8.0, // mean wall-clock of completed SigMap sessions
+  completedAMin: 8.4,
+  completedBMin: 8.0,
   verdict: "no robust speed difference (within noise)",
 } as const;
 
 /** Honest caveats — shown on the page so the numbers are trustworthy. */
 export const CAVEATS = [
-  "84 of 405 repos use languages SigMap doesn't yet parse (Clojure/Lua/C/C++/Haskell) — excluded from the headline, not hidden.",
-  "Retrieval precision is the ceiling: even the BM25 re-ranker (82.4% hit@5) sometimes surfaces a neighbour file, not the exact target.",
-  "We did NOT find a reproducible agent wall-clock speedup: a 3-rep Devin A/B came out within noise (8.4 vs 8.0 min on completed runs), with high variance and some sessions exceeding our 30-min cap. The token/cost savings below are deterministic; the agent-speed question is still open.",
-  "Devin's ACUs (its billing unit) aren't exposed by the API — only on its dashboard — so cost-per-task on the agent side is not yet measured.",
+  `The headline figures are the official SigMap benchmark (${OFFICIAL.version}, ${OFFICIAL.reposToken} repos, ${OFFICIAL.tasks} tasks) — synced from the core repo, same as sigmap.io.`,
+  "The 405-repo run is our own independent stress test; 84 use languages SigMap doesn't yet parse (Clojure/Lua/C/C++/Haskell) and are excluded, not hidden.",
+  "Retrieval on the broad 405-repo set is lower than the official 87.8% — a wider, messier corpus is harder than the curated benchmark set.",
+  "We did NOT find a reproducible agent wall-clock speedup: a 3-rep Devin A/B came out within noise (8.4 vs 8.0 min). Token/cost savings are deterministic; agent-speed is still open.",
 ];

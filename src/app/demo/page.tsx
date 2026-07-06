@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 // SigMap's published benchmark figures (sigmap.io).
 const METRICS = [
   { value: "97%", label: "fewer tokens" },
-  { value: "75.6%", label: "hit@5 retrieval" },
-  { value: "52.2%", label: "more tasks solved" },
-  { value: "0/21", label: "context overflows (was 16/21)" },
+  { value: "87.8%", label: "hit@5 retrieval" },
+  { value: "67.8%", label: "task success" },
+  { value: "6.5×", label: "retrieval lift" },
 ];
 
 const STEPS = [
@@ -109,7 +109,7 @@ export default function DemoPage() {
           ))}
         </dl>
         <p className="text-xs text-zinc-400">
-          SigMap v7.25 benchmark · 21 repos · 90 retrieval tasks · sigmap.io
+          SigMap v8.9 benchmark · 21 repos · 90 tasks · sigmap.io
         </p>
       </header>
 

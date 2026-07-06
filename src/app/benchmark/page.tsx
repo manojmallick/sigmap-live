@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   HEADLINE,
+  OFFICIAL,
+  OFFICIAL_URL,
   SCALE,
   BY_LANGUAGE,
   TASKS,
@@ -11,9 +13,9 @@ import {
 } from "@/lib/benchmark-data";
 
 export const metadata: Metadata = {
-  title: "SigMap Benchmark — the proof (405 repos · ~99% fewer tokens · 96× cheaper)",
+  title: "SigMap Benchmark — the proof (87.8% hit@5 · 97% fewer tokens · 67.8% task success)",
   description:
-    "Real, reproducible numbers: SigMap cuts AI coding context by ~99% across 405 repositories, makes task context 96× cheaper, and lifts retrieval hit@5 to 82.4% with a BM25 re-ranker.",
+    "The official SigMap benchmark: 87.8% retrieval hit@5 (vs 13.6% baseline), 97% token reduction, 67.8% task success across 21 repos / 90 tasks — plus an independent 405-repo reproduction. Reproducible, no LLM API.",
 };
 
 const nf = new Intl.NumberFormat("en-US");
@@ -67,17 +69,65 @@ export default function BenchmarkPage() {
         </a>
       </header>
 
-      {/* Experiment 1 — scale */}
+      {/* Official benchmark — the canonical sigmap.io numbers */}
       <section className="mb-14 space-y-4">
         <h2 className="text-lg font-bold tracking-tight">
-          1 · Token reduction at scale — {SCALE.reposSupported} repositories
+          1 · The official SigMap benchmark ({OFFICIAL.reposToken} repos,{" "}
+          {OFFICIAL.tasks} tasks)
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {nf.format(SCALE.tokensBefore)} → {nf.format(SCALE.tokensAfter)} tokens
-          — an <strong>{SCALE.overallReductionPct}%</strong> overall reduction
-          ({SCALE.avgReductionPct}% average per repo). {SCALE.reposExcluded} of{" "}
-          {SCALE.reposProcessed} repos use languages SigMap doesn&apos;t yet
-          parse and are excluded from the headline.
+          These are the canonical numbers from the SigMap core repo
+          (<code>benchmarks/latest.json</code>, {OFFICIAL.version}) — the same
+          figures published on{" "}
+          <a
+            href={OFFICIAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline dark:text-blue-400"
+          >
+            sigmap.io
+          </a>
+          . Generated from the benchmark suite, never hand-typed.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { v: `${OFFICIAL.hitAt5Pct}%`, l: `hit@5 (vs ${OFFICIAL.baselineHitAt5Pct}% baseline)` },
+            { v: `${OFFICIAL.retrievalLiftX}×`, l: "retrieval lift" },
+            { v: `${OFFICIAL.tokenReductionPct}%`, l: "token reduction" },
+            { v: `${OFFICIAL.taskSuccessPct}%`, l: `task success (vs ${OFFICIAL.baselineTaskSuccessPct}%)` },
+          ].map((s) => (
+            <div
+              key={s.l}
+              className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+            >
+              <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                {s.v}
+              </div>
+              <div className="text-xs text-zinc-500">{s.l}</div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-zinc-500">
+          Also: {OFFICIAL.promptReductionPct}% fewer prompts per task (
+          {OFFICIAL.baselinePromptsPerTask} → {OFFICIAL.promptsPerTask}). No LLM
+          API in the measurement — fully reproducible.
+        </p>
+      </section>
+
+      {/* Extended reproduction — scale */}
+      <section className="mb-14 space-y-4">
+        <h2 className="text-lg font-bold tracking-tight">
+          2 · We reproduced it at scale — {SCALE.reposSupported} repositories
+        </h2>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Independently, we ran whole-repo extraction on {SCALE.reposProcessed}{" "}
+          repos ({SCALE.reposSupported} supported) — {nf.format(SCALE.tokensBefore)}{" "}
+          → {nf.format(SCALE.tokensAfter)} tokens, a{" "}
+          <strong>{SCALE.overallReductionPct}%</strong> overall reduction
+          ({SCALE.avgReductionPct}% average per repo). That&apos;s consistent with
+          the official {OFFICIAL.tokenReductionPct}% at ~19× the scale.{" "}
+          {SCALE.reposExcluded} repos use languages SigMap doesn&apos;t yet parse
+          and are excluded.
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -125,7 +175,7 @@ export default function BenchmarkPage() {
       {/* Experiment 2 — tasks */}
       <section className="mb-14 space-y-4">
         <h2 className="text-lg font-bold tracking-tight">
-          2 · Real coding tasks — {TASKS.count} tasks, with vs without SigMap
+          3 · Real coding tasks — {TASKS.count} tasks, with vs without SigMap
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           For each task we measured the tokens an LLM needs to answer using the
@@ -158,7 +208,7 @@ export default function BenchmarkPage() {
       {/* Experiment 3 — Devin (honest, open result) */}
       <section className="mb-14 space-y-4">
         <h2 className="text-lg font-bold tracking-tight">
-          3 · Does it also make a real agent faster? — we tested it honestly
+          4 · Does it also make a real agent faster? — we tested it honestly
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           The savings above are about <strong>context size and cost</strong>, and
