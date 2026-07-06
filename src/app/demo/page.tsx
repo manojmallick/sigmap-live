@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DemoClient } from "@/components/DemoClient";
 import { CopyCommand } from "@/components/CopyCommand";
 import { FeatureGrid } from "@/components/FeatureGrid";
+import { LiveStats } from "@/components/LiveStats";
 
 export const metadata: Metadata = {
   title: "SigMap Demo — verified context for AI coding agents",
@@ -40,9 +41,12 @@ export default function DemoPage() {
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
       <header className="mb-12 space-y-5">
-        <span className="inline-block rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
-          The verification layer for AI coding agents
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-block rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+            The verification layer for AI coding agents
+          </span>
+          <LiveStats />
+        </div>
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
           Give your agent the right context —{" "}
           <span className="text-emerald-600 dark:text-emerald-400">
