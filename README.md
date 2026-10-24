@@ -5,7 +5,7 @@ Web demo for **[SigMap](https://github.com/manojmallick/sigmap)** — the verifi
 Paste a public GitHub repo → SigMap detects the real source folders, extracts verified function/class signatures, redacts secrets, and ranks the files that matter. The result is **context an agent can trust at ~99% fewer tokens**, which you can then ask questions against with Gemini.
 
 🔗 **Live:** [sigmap-live.vercel.app](https://sigmap-live.vercel.app/demo) · sigmap.nl/demo
-📊 **The proof:** [/benchmark](https://sigmap-live.vercel.app/benchmark) — 405 repos, 96× cheaper context, AI agents 61% faster ([open benchmark suite](https://github.com/manojmallick/sigmap-benchmark-suite))
+📊 **The proof:** [/benchmark](https://sigmap-live.vercel.app/benchmark) — 405 repos, 96× cheaper context, higher retrieval accuracy; agent speed-up not established ([open benchmark suite](https://github.com/manojmallick/sigmap-benchmark-suite))
 
 ---
 
@@ -34,7 +34,7 @@ The analyzer drives the **real SigMap CLI** server-side on a downloaded copy of 
 
 - **Scale** — ~99% fewer tokens across 405 repositories (per-language breakdown)
 - **Tasks** — 51 real coding tasks answered with vs without SigMap → 96× cheaper
-- **Agent** — Devin run head-to-head: ~61% faster on real tasks (4 of 5)
+- **Agent** — Devin A/B, reported honestly: a 3-rep run came out within noise (8.4 vs 8.0 min), and an early single run that looked like ~61% faster did not replicate. No agent speed-up is claimed
 
 Full methodology and raw data: **[sigmap-benchmark-suite](https://github.com/manojmallick/sigmap-benchmark-suite)**.
 
