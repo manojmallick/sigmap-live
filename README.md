@@ -113,7 +113,7 @@ src/lib/cache.ts               SHA-256 response cache
 
 ## Limits
 
-The demo is public and unauthenticated, so usage is capped per IP per day (via Upstash Redis): **a limited number of distinct repo analyses and "Ask" questions** (the defaults are 2 repos and 5 questions). Without the Upstash variables set, rate limiting is disabled, which is fine for local development. Repos larger than 300 MB are rejected up front.
+The demo is public and unauthenticated, so usage is capped per IP per day (via Upstash Redis): **20 distinct repos and 5 "Ask" questions** (see `REPO_LIMIT` and `ASK_LIMIT` in `src/lib/ratelimit.ts`). Without the Upstash variables set, rate limiting is disabled, which is fine for local development. Repos larger than 300 MB are rejected up front.
 
 ## Testing and CI
 
